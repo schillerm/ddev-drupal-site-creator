@@ -1,0 +1,20 @@
+#!/bin/sh
+
+echo
+echo "Running Git pre-commit hook – commit with the --no-verify option to skip"
+echo
+# Execute PHPCBF
+echo "Phpcbf check"
+./vendor/bin/phpcbf --standard=Drupal --extensions=php,module,inc,install,test,profile,theme,css,info,txt,md,yml web/modules/custom web/themes/custom
+if [ $? -ne 0 ]; then
+ echo "Failed command: ./vendor/bin/phpcbf"
+ exit 1
+fi
+
+# Execute PHPStan for static code analysis
+echo "Phpstan check L5"
+./vendor/bin/phpstan analyse web/modules/custom web/themes/custom -l 5 --memory-limit=256M
+if [ $? -ne 0 ]; then
+ echo "Failed command: ./vendor/bin/phpstan analyse –memory-limit=256M"
+ exit 1
+fi
