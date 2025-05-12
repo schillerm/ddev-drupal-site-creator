@@ -126,15 +126,15 @@ echo -e "Password : ${green}$password${reset}"
 
 echo "Select a Drupal version"
 echo
-doptions=(
+d_options=(
  11
  10
  9
  8
 )
 
-select_option "${doptions[@]}"
-dchoice=$?
+select_option "${d_options[@]}"
+d_choice=$?
 
 clear
 
@@ -143,11 +143,11 @@ clear
 
 
 
-case "${doptions[$dchoice]}" in
+case "${d_options[$d_choice]}" in
 "11")
 echo "Select a Drupal 11 version"
 echo
-d11options=(
+d11_options=(
  11.1.6
  11.1.5
  11.1.4
@@ -171,14 +171,14 @@ d11options=(
  11.0.0
 )
 
-select_option "${d11options[@]}"
-d11choice=$?
-drupalversion="${d11options[d11choice]}"
+select_option "${d11_options[@]}"
+d11_choice=$?
+drupal_version="${d11_options[d11_choice]}"
 ;;
 "10")
 echo "Select a Drupal 10 version"
 echo
-d10options=(
+d10_options=(
  10.4.0
  10.3.0
  10.2.0
@@ -186,14 +186,14 @@ d10options=(
  10.0.0
 )
 
-select_option "${d10options[@]}"
-d10choice=$?
-drupalversion="${d10options[d10choice]}"
+select_option "${d10_options[@]}"
+d10_choice=$?
+drupal_version="${d10_options[d10_choice]}"
 ;;
 "9")
 echo "Select a Drupal 9 version"
 echo
-d9options=(
+d9_options=(
  9.5.0
  9.4.0
  9.3.0
@@ -202,21 +202,21 @@ d9options=(
  9.0.0
 )
 
-select_option "${d9options[@]}"
-d9choice=$?
-drupalversion="${d9options[d9choice]}"
+select_option "${d9_options[@]}"
+d9_choice=$?
+drupal_version="${d9_options[d9_choice]}"
 ;;
 "8")
 echo "Select a Drupal 8 version"
 echo
-d8options=(
+d8_options=(
  8.9.0
  8.8.0
 )
 
-select_option "${d8options[@]}"
-d8choice=$?
-drupalversion="${d8options[d8choice]}"
+select_option "${d8_options[@]}"
+d8_choice=$?
+drupal_version="${d8_options[d8_choice]}"
 ;;
 
 esac
@@ -224,22 +224,22 @@ esac
 clear
 
 
-case "$drupalversion" in
+case "$drupal_version" in
   "11.1.6"|"11.1.5"|"11.1.4"|"11.1.3"|"11.1.2"|"11.1.1"|"11.1.0")
-    phpoptions=(
+    php_options=(
       8.4
       8.3
     )
     ;;
 
   "11.0.13"|"11.0.12"|"11.0.11"|"11.0.10"|"11.0.9"|"11.0.8"|"11.0.7"|"11.0.6"|"11.0.5"|"11.0.4"|"11.0.3"|"11.0.2"|"11.0.1"|"11.0.0")
-    phpoptions=(
+    php_options=(
       8.3
     )
     ;;
 
   "10.4.0")
-    phpoptions=(
+    php_options=(
       8.4
       8.3
       8.2
@@ -248,7 +248,7 @@ case "$drupalversion" in
     ;;
 
   "10.3.0")
-    phpoptions=(
+    php_options=(
       8.3
       8.2
       8.1
@@ -256,7 +256,7 @@ case "$drupalversion" in
     ;;
 
   "10.2.0")
-    phpoptions=(
+    php_options=(
       8.3
       8.2
       8.1
@@ -264,14 +264,14 @@ case "$drupalversion" in
     ;;
 
   "10.1.0" | "10.0.0")
-    phpoptions=(
+    php_options=(
       8.2
       8.1
     )
     ;;
 
   "9.5.0")
-    phpoptions=(
+    php_options=(
       8.1
       8.0
       7.4
@@ -279,7 +279,7 @@ case "$drupalversion" in
     ;;
 
   "9.4.0")
-    phpoptions=(
+    php_options=(
       8.1
       8.0
       7.4
@@ -288,7 +288,7 @@ case "$drupalversion" in
     ;;
 
   "9.3.0"|"9.2.0"|"9.1.0")
-    phpoptions=(
+    php_options=(
       8.0
       7.4
       7.3
@@ -296,7 +296,7 @@ case "$drupalversion" in
     ;;
 
   "9.0.0")
-    phpoptions=(
+    php_options=(
       8.0
       7.4
       7.3
@@ -304,7 +304,7 @@ case "$drupalversion" in
     ;;
 
   "8.9.0")
-    phpoptions=(
+    php_options=(
       7.4
       7.3
       7.2
@@ -312,7 +312,7 @@ case "$drupalversion" in
     ;;
 
   "8.8.0")
-    phpoptions=(
+    php_options=(
       7.3
       7.2
       7.1
@@ -321,7 +321,7 @@ case "$drupalversion" in
 
   *)
     echo "Selected version not explicitly handled, you chose: ${options[$choice]}"
-    phpoptions=(
+    php_options=(
       8.4
       8.3
       8.2
@@ -335,9 +335,9 @@ esac
 
 echo "Select a PHP version"
 echo
-select_option "${phpoptions[@]}"
-phpchoice=$?
-phpversion="${phpoptions[$phpchoice]}"
+select_option "${php_options[@]}"
+php_choice=$?
+phpversion="${php_options[$php_choice]}"
 
 
 clear
@@ -348,12 +348,12 @@ echo -e "Sitename : ${green}$sitename${reset}"
 echo -e "Username : ${green}$username${reset}"
 echo -e "Email : ${green}$email${reset}"
 echo -e "Password : ${green}$password${reset}"
-echo -e "Drupal version : ${green}$drupalversion${reset}"
+echo -e "Drupal version : ${green}$drupal_version${reset}"
 echo -e "PHP version : ${green}$phpversion${reset}"
 
 clear
 
-case "$drupalversion" in
+case "$drupal_version" in
   "11.1.6"|"11.1.5"|"11.1.4"|"11.1.3"|"11.1.2"|"11.1.1"|"11.1.0")
     drushversion=13
     ;;
@@ -407,7 +407,7 @@ echo -e "Sitename : ${green}$sitename${reset}"
 echo -e "Username : ${green}$username${reset}"
 echo -e "Email : ${green}$email${reset}"
 echo -e "Password : ${green}$password${reset}"
-echo -e "Drupal version : ${green}$drupalversion${reset}"
+echo -e "Drupal version : ${green}$drupal_version${reset}"
 echo -e "PHP version : ${green}$phpversion${reset}"
 echo -e "Drush version : ${green}$drushversion${reset}"
 
@@ -445,7 +445,7 @@ echo -e "Sitename : ${green}$sitename${reset}"
 echo -e "Username : ${green}$username${reset}"
 echo -e "Email : ${green}$email${reset}"
 echo -e "Password : ${green}$password${reset}"
-echo -e "Drupal version : ${green}$drupalversion${reset}"
+echo -e "Drupal version : ${green}$drupal_version${reset}"
 echo -e "PHP version : ${green}$phpversion${reset}"
 echo -e "Drush version : ${green}$drushversion${reset}"
 echo -e "Custom Module : ${green}$custom_module${reset}"
