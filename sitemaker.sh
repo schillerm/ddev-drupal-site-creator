@@ -553,24 +553,24 @@ git_choice="${git_options[$git_options_choice]}"
 
 clear
 
-echo "Do you want to work on an issue?"
-echo
-issue_options=(
-Yes
-No
-)
+# echo "Do you want to work on an issue?"
+# echo
+# issue_options=(
+# Yes
+# No
+# )
 
-select_option "${issue_options[@]}"
-issue_options_choice=$?
-issue_choice="${issue_options[$issue_options_choice]}"
+# select_option "${issue_options[@]}"
+# issue_options_choice=$?
+# issue_choice="${issue_options[$issue_options_choice]}"
 
-clear
+# clear
 
-if [ "$issue_choice" = "Yes" ]; then
-  read -p 'Issue number [] : ' issue_number
-issue_number=${issue_number:}
-fi
-fi
+# if [ "$issue_choice" = "Yes" ]; then
+#   read -p 'Issue number [] : ' issue_number
+# issue_number=${issue_number:}
+# fi
+# fi
 clear
 
 echo -e "${blue}Creating new Drupal site${reset}"
@@ -587,9 +587,9 @@ echo -e "PHP version : ${green}$phpversion${reset}"
 echo -e "Drush version : ${green}$drush_version${reset}"
 echo -e "Custom Module : ${green}$custom_module${reset}"
 echo -e "Custom Theme : ${green}$custom_theme${reset}"
-if [ "$issue_choice" = "Yes" ]; then
-echo -e "Issue Number : ${green}$issue_number${reset}"
-fi
+# if [ "$issue_choice" = "Yes" ]; then
+# echo -e "Issue Number : ${green}$issue_number${reset}"
+# fi
 echo -e "You may need to enter your password for sudo or allow escalation. So don't walk away just yet."
 fi
 
