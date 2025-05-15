@@ -767,6 +767,10 @@ fi
 # changes to settings.php
 echo "\$settings['config_sync_directory'] = '../config/default/sync';" >> web/sites/default/settings.php
 echo "\$settings['file_private_path'] = '../private';" >> web/sites/default/settings.php
+echo "\$settings['skip_permissions_hardening'] = FALSE;" >> web/sites/default/settings.php
+
+chmod 644 sites/default/settings.php
+chmod 755 sites/default
 
 ddev drush cr
 
