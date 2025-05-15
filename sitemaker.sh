@@ -67,7 +67,7 @@ blue="\e[0;94m"
 reset="\e[0m"
 
 clear
-echo -e "${blue}Creating new Drupal site${reset}"
+echo -e "${blue}Creating new DDEv Drupal site${reset}"
 echo -e " "
 echo "Do you want to install DrupalCMS?"
 echo
@@ -300,7 +300,7 @@ fi
 
 clear
 
-echo -e "${blue}Creating new Drupal site${reset}"
+echo -e "${blue}Creating new DDEv Drupal site${reset}"
 echo -e " "
 read -p 'Sitename [Dev] : ' initial_sitename
 initial_sitename=${initial_sitename:-Dev}
@@ -347,14 +347,14 @@ else
   sitename="${initial_sitename}"
 fi
 
-echo -e "${blue}Creating new Drupal site${reset}"
+echo -e "${blue}Creating new DDEv Drupal site${reset}"
 echo -e " "
 echo -e "Sitename : ${green}$sitename${reset}"
 read -p "Username [admin]: " username
 username=${username:-admin}
 
 clear
-echo -e "${blue}Creating new Drupal site${reset}"
+echo -e "${blue}Creating new DDEv Drupal site${reset}"
 echo -e " "
 echo -e "Sitename : ${green}$sitename${reset}"
 echo -e "Username : ${green}$username${reset}"
@@ -370,7 +370,7 @@ while true; do
 done
 
 clear
-echo -e "${blue}Creating new Drupal site${reset}"
+echo -e "${blue}Creating new DDEv Drupal site${reset}"
 echo -e " "
 echo -e "Sitename : ${green}$sitename${reset}"
 echo -e "Username : ${green}$username${reset}"
@@ -388,7 +388,7 @@ while true; do
 done
 
 clear
-echo -e "${blue}Creating new Drupal site${reset}"
+echo -e "${blue}Creating new DDEv Drupal site${reset}"
 echo -e " "
 echo -e "Sitename : ${green}$sitename${reset}"
 echo -e "Username : ${green}$username${reset}"
@@ -398,7 +398,7 @@ echo -e "Password : ${green}$password${reset}"
 
 clear
 
-echo -e "${blue}Creating new Drupal site${reset}"
+echo -e "${blue}Creating new DDEv Drupal site${reset}"
 echo -e " "
 echo -e "Sitename : ${green}$sitename${reset}"
 echo -e "Username : ${green}$username${reset}"
@@ -463,7 +463,7 @@ fi
 
 clear
 
-echo -e "${blue}Creating new Drupal site${reset}"
+echo -e "${blue}Creating new DDEv Drupal site${reset}"
 echo -e " "
 echo -e "Sitename : ${green}$sitename${reset}"
 echo -e "Username : ${green}$username${reset}"
@@ -573,7 +573,7 @@ clear
 # fi
 clear
 
-echo -e "${blue}Creating new Drupal site${reset}"
+echo -e "${blue}Creating new DDEv Drupal site${reset}"
 echo -e " "
 echo -e "Sitename : ${green}$sitename${reset}"
 echo -e "Username : ${green}$username${reset}"
