@@ -387,14 +387,6 @@ while true; do
     fi
 done
 
-clear
-echo -e "${blue}Creating new DDev Drupal site${reset}"
-echo -e " "
-echo -e "Sitename : ${green}$sitename${reset}"
-echo -e "Username : ${green}$username${reset}"
-echo -e "Email : ${green}$email${reset}"
-echo -e "Password : ${green}$password${reset}"
-
 
 clear
 
