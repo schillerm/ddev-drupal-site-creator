@@ -678,10 +678,14 @@ fi
 
 if [ "$custom_module" = "Yes" ]; then
 
+module_name="${sitename}-module"
+module_name="${module_name,,}"
+module_name="${module_name//-/_}"
+
 # Run the drush generate command to create the module
 ddev drush generate -q module \
   --answer="Test module" \
-  --answer="tm" \
+  --answer="$module_name" \
   --answer="My test module" \
   --answer="Custom" \
   --answer="" \
@@ -691,7 +695,7 @@ ddev drush generate -q module \
 
 
 # Create module folders
-cd "web/modules/custom/tm"
+cd "web/modules/custom/$module_name"
 mkdir js
 mkdir css
 mkdir config
@@ -700,49 +704,54 @@ mkdir src
 mkdir src/Controller
 cd ../../../../
 
-ddev drush en "tm"
+ddev drush en "$module_name"
 
 fi
 
 if [ "$custom_theme" = "Yes" ]; then
+
+theme_name="${sitename}-theme"
+theme_name="${theme_name,,}"
+theme_name="${theme_name//-/_}"
+
 ddev drush generate -q theme \
   --answer="Test Theme" \
-  --answer="tt" \
+  --answer="$theme_name" \
   --answer="Olivero" \
   --answer="My test theme" \
   --answer="Custom" \
   --answer="No" \
   --answer="No" \
 
-rm web/themes/custom/"tt"/css/base/elements.css
-rm web/themes/custom/"tt"/css/layout/layout.css
-rm web/themes/custom/"tt"/css/component/block.css
-rm web/themes/custom/"tt"/css/component/tabs.css
-rm web/themes/custom/"tt"/css/component/breadcrumb.css
-rm web/themes/custom/"tt"/css/component/field.css
-rm web/themes/custom/"tt"/css/component/header.css
-rm web/themes/custom/"tt"/css/component/form.css
-rm web/themes/custom/"tt"/css/component/buttons.css
-rm web/themes/custom/"tt"/css/component/table.css
-rm web/themes/custom/"tt"/css/component/messages.css
-rm web/themes/custom/"tt"/css/component/sidebar.css
-rm web/themes/custom/"tt"/css/component/node.css
-rm web/themes/custom/"tt"/css/component/menu.css
-rm web/themes/custom/"tt"/css/theme/print.css
+rm "web/themes/custom/$theme_name/css/base/elements.css"
+rm "web/themes/custom/$theme_name/css/layout/layout.css"
+rm "web/themes/custom/$theme_name/css/component/block.css"
+rm "web/themes/custom/$theme_name/css/component/tabs.css"
+rm "web/themes/custom/$theme_name/css/component/breadcrumb.css"
+rm "web/themes/custom/$theme_name/css/component/field.css"
+rm "web/themes/custom/$theme_name/css/component/header.css"
+rm "web/themes/custom/$theme_name/css/component/form.css"
+rm "web/themes/custom/$theme_name/css/component/buttons.css"
+rm "web/themes/custom/$theme_name/css/component/table.css"
+rm "web/themes/custom/$theme_name/css/component/messages.css"
+rm "web/themes/custom/$theme_name/css/component/sidebar.css"
+rm "web/themes/custom/$theme_name/css/component/node.css"
+rm "web/themes/custom/$theme_name/css/component/menu.css"
+rm "web/themes/custom/$theme_name/css/theme/print.css"
 
 # Create theme folders
-mkdir web/themes/custom/"tt"/config
-mkdir web/themes/custom/"tt"/config/install
+mkdir "web/themes/custom/$theme_name/config"
+mkdir "web/themes/custom/$theme_name/config/install"
 
 # Copy theme regions over
 SOURCE_FILE=web/core/themes/olivero/olivero.info.yml
-TARGET_FILE=web/themes/custom/"tt"/"tt".info.yml
+TARGET_FILE=web/themes/custom/$theme_name/$theme_name.info.yml
 yq eval ".regions = load(\"$SOURCE_FILE\").regions" "$TARGET_FILE" -i
 
 # Enable the theme and set as default
-ddev drush theme:enable tt
-ddev drush config:set tt.settings logo.use_default 0 -y
-ddev drush config:set system.theme default tt -y
+ddev drush theme:enable $theme_name
+ddev drush config:set $theme_name.settings logo.use_default 0 -y
+ddev drush config:set system.theme default $theme_name -y
 
 
 fi
@@ -756,7 +765,7 @@ cp ../Extras/.gitignore .gitignore
 fi
 
 # Enable phpmyadmin in DDev
-yes | DDev phpmyadmin
+yes | ddev phpmyadmin
 
 if [ "$git_choice" = "Yes" ]; then
 # Initalize git repo
