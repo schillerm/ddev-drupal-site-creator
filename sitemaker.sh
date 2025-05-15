@@ -319,7 +319,6 @@ suffix_digits_options_choice=$?
 suffix_digits_choice="${suffix_digits_options[$suffix_digits_options_choice]}"
 
 
-
 clear
 
 echo "Do you want to add the drupal version to the site name?"
@@ -375,7 +374,6 @@ echo -e " "
 echo -e "Sitename : ${green}$sitename${reset}"
 echo -e "Username : ${green}$username${reset}"
 echo -e "Email : ${green}$email${reset}"
-
 
 while true; do
     read -p 'Password [admin]: ' password
@@ -475,8 +473,7 @@ clear
 if [ "$drupal_cms" = "No" ]; then
 
 
-
-
+if [ "$basic_drupal_version" = "11" ]; then
 echo "Do you want development modules installed? (composer-patches, core-dev, devel, examples, admin_toolbar, webprofiler)"
 echo
 dev_modules_options=(
@@ -487,6 +484,8 @@ No
 select_option "${dev_modules_options[@]}"
 dev_modules_options_choice=$?
 dev_modules="${dev_modules_options[$dev_modules_options_choice]}"
+fi
+
 
 clear
 
@@ -577,8 +576,14 @@ echo -e "Drupal Basic version : ${green}$basic_drupal_version${reset}"
 echo -e "Drupal version : ${green}$drupal_version${reset}"
 echo -e "PHP version : ${green}$phpversion${reset}"
 echo -e "Drush version : ${green}$drush_version${reset}"
+fi
+if [ "$basic_drupal_version" = "11" ]; then
+echo -e "Dev modules : ${green}$dev_things${reset}"
+fi
+echo -e "Dev settings : ${green}$dev_things${reset}"
 echo -e "Custom Module : ${green}$custom_module${reset}"
 echo -e "Custom Theme : ${green}$custom_theme${reset}"
+echo -e "Git repo : ${green}$git_choice${reset}"
 # if [ "$issue_choice" = "Yes" ]; then
 # echo -e "Issue Number : ${green}$issue_number${reset}"
 # fi
@@ -596,22 +601,20 @@ fi
 
 recommended_project="recommended-project:^${basic_drupal_version}"
 
-# echo "Project Type : $project_type"
-
-DDev config --project-type=$project_type --docroot=web
-DDev start
+ddev config --project-type=$project_type --docroot=web
+ddev start
 if [ "$drupal_cms" = "Yes" ]; then
-DDev composer create drupal/cms
+ddev composer create drupal/cms
 else
-DDev composer create drupal/$recommended_project
+ddev composer create drupal/$recommended_project
 
 if [ "$basic_drupal_version" = "11" ]; then
-DDev composer require drush/drush
+ddev composer require drush/drush
 else
-DDev composer require drush/drush:^$drush_version
+ddev composer require drush/drush:^$drush_version
 fi
 
-DDev drush site:install --account-name=$username --account-pass=$password -y --site-name=$sitename
+ddev drush site:install --account-name=$username --account-pass=$password -y --site-name=$sitename
 
 # Create the modules custom directory
 mkdir -p web/modules/custom
@@ -640,43 +643,43 @@ cp ../Extras/launch.json .vscode/launch.json
 
 # Allow plugin sources
 if [ "$dev_things" = "Yes" ]; then
-DDev composer config allow-plugins.tbachert/spi true
-DDev composer config allow-plugins.cweagans/composer-patches true
+ddev composer config allow-plugins.tbachert/spi true
+ddev composer config allow-plugins.cweagans/composer-patches true
 fi
-DDev composer config extra.drupal-scaffold.gitignore true
+ddev composer config extra.drupal-scaffold.gitignore true
 
 if [ "$dev_modules" = "Yes" ]; then
 
 # Install and enable useful dev modules
-DDev composer require cweagans/composer-patches
-DDev composer require drupal/core-dev --dev --update-with-all-dependencies
-DDev composer require drupal/devel --dev
-DDev composer require drupal/admin_toolbar --dev
-DDev composer require drupal/examples --dev
-DDev composer require drupal/webprofiler --dev
+ddev composer require cweagans/composer-patches
+ddev composer require drupal/core-dev --dev --update-with-all-dependencies
+ddev composer require drupal/devel --dev
+ddev composer require drupal/admin_toolbar --dev
+ddev composer require drupal/examples --dev
+ddev composer require drupal/webprofiler --dev
 
-DDev drush en admin_toolbar
-DDev drush en devel
-DDev drush en devel_generate
-DDev drush en examples
-DDev drush en webprofiler -y
+ddev drush en admin_toolbar
+ddev drush en devel
+ddev drush en devel_generate
+ddev drush en examples
+ddev drush en webprofiler -y
 fi
 
 if [ "$dev_things" = "Yes" ]; then
 # Configure development settings
-DDev drush -y config-set system.performance js.preprocess 0
-DDev drush -y config-set system.performance css.preprocess 0
-DDev drush config:set system.theme twig_debug TRUE --yes
+ddev drush -y config-set system.performance js.preprocess 0
+ddev drush -y config-set system.performance css.preprocess 0
+ddev drush config:set system.theme twig_debug TRUE --yes
 
 # Enable twig development mode and do not cache markup
-DDev drush php:eval "\Drupal::keyValue('development_settings')->setMultiple(['disable_rendered_output_cache_bins' => TRUE, 'twig_debug' => TRUE, 'twig_cache_disable' => TRUE]);"
+ddev drush php:eval "\Drupal::keyValue('development_settings')->setMultiple(['disable_rendered_output_cache_bins' => TRUE, 'twig_debug' => TRUE, 'twig_cache_disable' => TRUE]);"
 fi
 
 
 if [ "$custom_module" = "Yes" ]; then
 
 # Run the drush generate command to create the module
-DDev drush generate -q module \
+ddev drush generate -q module \
   --answer="Test module" \
   --answer="tm" \
   --answer="My test module" \
@@ -697,12 +700,12 @@ mkdir src
 mkdir src/Controller
 cd ../../../../
 
-DDev drush en "tm"
+ddev drush en "tm"
 
 fi
 
 if [ "$custom_theme" = "Yes" ]; then
-DDev drush generate -q theme \
+ddev drush generate -q theme \
   --answer="Test Theme" \
   --answer="tt" \
   --answer="Olivero" \
@@ -737,9 +740,9 @@ TARGET_FILE=web/themes/custom/"tt"/"tt".info.yml
 yq eval ".regions = load(\"$SOURCE_FILE\").regions" "$TARGET_FILE" -i
 
 # Enable the theme and set as default
-DDev drush theme:enable tt
-DDev drush config:set tt.settings logo.use_default 0 -y
-DDev drush config:set system.theme default tt -y
+ddev drush theme:enable tt
+ddev drush config:set tt.settings logo.use_default 0 -y
+ddev drush config:set system.theme default tt -y
 
 
 fi
@@ -765,10 +768,10 @@ fi
 echo "\$settings['config_sync_directory'] = '../config/default/sync';" >> web/sites/default/settings.php
 echo "\$settings['file_private_path'] = '../private';" >> web/sites/default/settings.php
 
-DDev drush cr
+ddev drush cr
 
 # export config
-DDev drush cex -y
+ddev drush cex -y
 
 
 if [ "$git_choice" = "Yes" ]; then
@@ -777,9 +780,9 @@ git commit -m "Initial commit" -q
 fi
 
 
-DDev drush cr
+ddev drush cr
 
-yes | DDev restart
+yes | ddev restart
 
 
 # End if statement if not DrupalCMS
