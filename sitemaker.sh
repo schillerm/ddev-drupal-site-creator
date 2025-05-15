@@ -67,7 +67,7 @@ blue="\e[0;94m"
 reset="\e[0m"
 
 clear
-echo -e "${blue}Creating new DDEv Drupal site${reset}"
+echo -e "${blue}Creating new DDev Drupal site${reset}"
 echo -e " "
 echo "Do you want to install DrupalCMS?"
 echo
@@ -300,7 +300,7 @@ fi
 
 clear
 
-echo -e "${blue}Creating new DDEv Drupal site${reset}"
+echo -e "${blue}Creating new DDev Drupal site${reset}"
 echo -e " "
 read -p 'Sitename [Dev] : ' initial_sitename
 initial_sitename=${initial_sitename:-Dev}
@@ -347,14 +347,14 @@ else
   sitename="${initial_sitename}"
 fi
 
-echo -e "${blue}Creating new DDEv Drupal site${reset}"
+echo -e "${blue}Creating new DDev Drupal site${reset}"
 echo -e " "
 echo -e "Sitename : ${green}$sitename${reset}"
 read -p "Username [admin]: " username
 username=${username:-admin}
 
 clear
-echo -e "${blue}Creating new DDEv Drupal site${reset}"
+echo -e "${blue}Creating new DDev Drupal site${reset}"
 echo -e " "
 echo -e "Sitename : ${green}$sitename${reset}"
 echo -e "Username : ${green}$username${reset}"
@@ -370,7 +370,7 @@ while true; do
 done
 
 clear
-echo -e "${blue}Creating new DDEv Drupal site${reset}"
+echo -e "${blue}Creating new DDev Drupal site${reset}"
 echo -e " "
 echo -e "Sitename : ${green}$sitename${reset}"
 echo -e "Username : ${green}$username${reset}"
@@ -388,7 +388,7 @@ while true; do
 done
 
 clear
-echo -e "${blue}Creating new DDEv Drupal site${reset}"
+echo -e "${blue}Creating new DDev Drupal site${reset}"
 echo -e " "
 echo -e "Sitename : ${green}$sitename${reset}"
 echo -e "Username : ${green}$username${reset}"
@@ -398,7 +398,7 @@ echo -e "Password : ${green}$password${reset}"
 
 clear
 
-echo -e "${blue}Creating new DDEv Drupal site${reset}"
+echo -e "${blue}Creating new DDev Drupal site${reset}"
 echo -e " "
 echo -e "Sitename : ${green}$sitename${reset}"
 echo -e "Username : ${green}$username${reset}"
@@ -463,7 +463,7 @@ fi
 
 clear
 
-echo -e "${blue}Creating new DDEv Drupal site${reset}"
+echo -e "${blue}Creating new DDev Drupal site${reset}"
 echo -e " "
 echo -e "Sitename : ${green}$sitename${reset}"
 echo -e "Username : ${green}$username${reset}"
@@ -573,7 +573,7 @@ clear
 # fi
 clear
 
-echo -e "${blue}Creating new DDEv Drupal site${reset}"
+echo -e "${blue}Creating new DDev Drupal site${reset}"
 echo -e " "
 echo -e "Sitename : ${green}$sitename${reset}"
 echo -e "Username : ${green}$username${reset}"
@@ -606,20 +606,20 @@ recommended_project="recommended-project:^${basic_drupal_version}"
 
 # echo "Project Type : $project_type"
 
-ddev config --project-type=$project_type --docroot=web
-ddev start
+DDev config --project-type=$project_type --docroot=web
+DDev start
 if [ "$drupal_cms" = "Yes" ]; then
-ddev composer create drupal/cms
+DDev composer create drupal/cms
 else
-ddev composer create drupal/$recommended_project
+DDev composer create drupal/$recommended_project
 
 if [ "$basic_drupal_version" = "11" ]; then
-ddev composer require drush/drush
+DDev composer require drush/drush
 else
-ddev composer require drush/drush:^$drush_version
+DDev composer require drush/drush:^$drush_version
 fi
 
-ddev drush site:install --account-name=$username --account-pass=$password -y --site-name=$sitename
+DDev drush site:install --account-name=$username --account-pass=$password -y --site-name=$sitename
 
 # Create the modules custom directory
 mkdir -p web/modules/custom
@@ -648,43 +648,43 @@ cp ../Extras/launch.json .vscode/launch.json
 
 # Allow plugin sources
 if [ "$dev_things" = "Yes" ]; then
-ddev composer config allow-plugins.tbachert/spi true
-ddev composer config allow-plugins.cweagans/composer-patches true
+DDev composer config allow-plugins.tbachert/spi true
+DDev composer config allow-plugins.cweagans/composer-patches true
 fi
-ddev composer config extra.drupal-scaffold.gitignore true
+DDev composer config extra.drupal-scaffold.gitignore true
 
 if [ "$dev_modules" = "Yes" ]; then
 
 # Install and enable useful dev modules
-ddev composer require cweagans/composer-patches
-ddev composer require drupal/core-dev --dev --update-with-all-dependencies
-ddev composer require drupal/devel --dev
-ddev composer require drupal/admin_toolbar --dev
-ddev composer require drupal/examples --dev
-ddev composer require drupal/webprofiler --dev
+DDev composer require cweagans/composer-patches
+DDev composer require drupal/core-dev --dev --update-with-all-dependencies
+DDev composer require drupal/devel --dev
+DDev composer require drupal/admin_toolbar --dev
+DDev composer require drupal/examples --dev
+DDev composer require drupal/webprofiler --dev
 
-ddev drush en admin_toolbar
-ddev drush en devel
-ddev drush en devel_generate
-ddev drush en examples
-ddev drush en webprofiler -y
+DDev drush en admin_toolbar
+DDev drush en devel
+DDev drush en devel_generate
+DDev drush en examples
+DDev drush en webprofiler -y
 fi
 
 if [ "$dev_things" = "Yes" ]; then
 # Configure development settings
-ddev drush -y config-set system.performance js.preprocess 0
-ddev drush -y config-set system.performance css.preprocess 0
-ddev drush config:set system.theme twig_debug TRUE --yes
+DDev drush -y config-set system.performance js.preprocess 0
+DDev drush -y config-set system.performance css.preprocess 0
+DDev drush config:set system.theme twig_debug TRUE --yes
 
 # Enable twig development mode and do not cache markup
-ddev drush php:eval "\Drupal::keyValue('development_settings')->setMultiple(['disable_rendered_output_cache_bins' => TRUE, 'twig_debug' => TRUE, 'twig_cache_disable' => TRUE]);"
+DDev drush php:eval "\Drupal::keyValue('development_settings')->setMultiple(['disable_rendered_output_cache_bins' => TRUE, 'twig_debug' => TRUE, 'twig_cache_disable' => TRUE]);"
 fi
 
 
 if [ "$custom_module" = "Yes" ]; then
 
 # Run the drush generate command to create the module
-ddev drush generate -q module \
+DDev drush generate -q module \
   --answer="Test module" \
   --answer="tm" \
   --answer="My test module" \
@@ -705,12 +705,12 @@ mkdir src
 mkdir src/Controller
 cd ../../../../
 
-ddev drush en "tm"
+DDev drush en "tm"
 
 fi
 
 if [ "$custom_theme" = "Yes" ]; then
-ddev drush generate -q theme \
+DDev drush generate -q theme \
   --answer="Test Theme" \
   --answer="tt" \
   --answer="Olivero" \
@@ -745,9 +745,9 @@ TARGET_FILE=web/themes/custom/"tt"/"tt".info.yml
 yq eval ".regions = load(\"$SOURCE_FILE\").regions" "$TARGET_FILE" -i
 
 # Enable the theme and set as default
-ddev drush theme:enable tt
-ddev drush config:set tt.settings logo.use_default 0 -y
-ddev drush config:set system.theme default tt -y
+DDev drush theme:enable tt
+DDev drush config:set tt.settings logo.use_default 0 -y
+DDev drush config:set system.theme default tt -y
 
 
 fi
@@ -760,8 +760,8 @@ if [ "$git_choice" = "Yes" ]; then
 cp ../Extras/.gitignore .gitignore
 fi
 
-# Enable phpmyadmin in DDEV
-yes | ddev phpmyadmin
+# Enable phpmyadmin in DDev
+yes | DDev phpmyadmin
 
 if [ "$git_choice" = "Yes" ]; then
 # Initalize git repo
@@ -773,10 +773,10 @@ fi
 echo "\$settings['config_sync_directory'] = '../config/default/sync';" >> web/sites/default/settings.php
 echo "\$settings['file_private_path'] = '../private';" >> web/sites/default/settings.php
 
-ddev drush cr
+DDev drush cr
 
 # export config
-ddev drush cex -y
+DDev drush cex -y
 
 
 if [ "$git_choice" = "Yes" ]; then
@@ -785,9 +785,9 @@ git commit -m "Initial commit" -q
 fi
 
 
-ddev drush cr
+DDev drush cr
 
-yes | ddev restart
+yes | DDev restart
 
 
 # End if statement if not DrupalCMS
