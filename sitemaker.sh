@@ -358,9 +358,27 @@ else
   sitename="${initial_sitename}"
 fi
 
+clear
+
 echo -e "${blue}Creating new DDev Drupal site${reset}"
 echo -e " "
 echo -e "Sitename : ${green}$sitename${reset}"
+
+
+# Assume initial_sitename is already set earlier
+default_site_title="${sitename}"
+
+read -p "Site Title [${default_site_title}] : " site_title
+site_title=${site_title:-$default_site_title}
+
+echo "Using site title: $site_title"
+
+clear
+
+echo -e "${blue}Creating new DDev Drupal site${reset}"
+echo -e " "
+echo -e "Sitename : ${green}$sitename${reset}"
+echo -e "Site Title : ${green}$site_title${reset}"
 read -p "Username [admin]: " username
 username=${username:-admin}
 
@@ -368,6 +386,7 @@ clear
 echo -e "${blue}Creating new DDev Drupal site${reset}"
 echo -e " "
 echo -e "Sitename : ${green}$sitename${reset}"
+echo -e "Site Title : ${green}$site_title${reset}"
 echo -e "Username : ${green}$username${reset}"
 
 while true; do
@@ -384,6 +403,7 @@ clear
 echo -e "${blue}Creating new DDev Drupal site${reset}"
 echo -e " "
 echo -e "Sitename : ${green}$sitename${reset}"
+echo -e "Site Title : ${green}$site_title${reset}"
 echo -e "Username : ${green}$username${reset}"
 echo -e "Email : ${green}$email${reset}"
 
@@ -403,6 +423,7 @@ clear
 echo -e "${blue}Creating new DDev Drupal site${reset}"
 echo -e " "
 echo -e "Sitename : ${green}$sitename${reset}"
+echo -e "Site Title : ${green}$site_title${reset}"
 echo -e "Username : ${green}$username${reset}"
 echo -e "Email : ${green}$email${reset}"
 echo -e "Password : ${green}$password${reset}"
@@ -468,6 +489,7 @@ clear
 echo -e "${blue}Creating new DDev Drupal site${reset}"
 echo -e " "
 echo -e "Sitename : ${green}$sitename${reset}"
+echo -e "Site Title : ${green}$site_title${reset}"
 echo -e "Username : ${green}$username${reset}"
 echo -e "Email : ${green}$email${reset}"
 echo -e "Password : ${green}$password${reset}"
@@ -579,6 +601,7 @@ clear
 echo -e "${blue}Creating new DDev Drupal site${reset}"
 echo -e " "
 echo -e "Sitename : ${green}$sitename${reset}"
+echo -e "Site Title : ${green}$site_title${reset}"
 echo -e "Username : ${green}$username${reset}"
 echo -e "Email : ${green}$email${reset}"
 echo -e "Password : ${green}$password${reset}"
@@ -765,7 +788,6 @@ ddev drush theme:enable $theme_name
 ddev drush config:set $theme_name.settings logo.use_default 0 -y
 ddev drush config:set system.theme default $theme_name -y
 
-
 fi
 
 # copy phpstan.neon over
@@ -778,6 +800,27 @@ fi
 
 # Enable phpmyadmin in DDev
 yes | ddev phpmyadmin
+
+# Sanitize the site title
+sanitize_site_title() {
+  local input="$1"
+
+  # Trim leading/trailing whitespace
+  input="$(echo "$input" | sed -e 's/^[[:space:]]*//' -e 's/[[:space:]]*$//')"
+
+  # Remove control characters (non-printable)
+  input="$(echo "$input" | tr -dC '[:print:]')"
+
+  # Replace dangerous shell characters with dashes or nothing
+  input="$(echo "$input" | sed 's/["'\''`\\$&<>|]/-/g')"
+
+  echo "$input"
+}
+
+sanitized_title=$(sanitize_site_title "$site_title")
+
+# Set the Site Title
+ddev drush config:set system.site name "$sanitized_title" --yes
 
 if [ "$git_choice" = "Yes" ]; then
 # Initalize git repo
