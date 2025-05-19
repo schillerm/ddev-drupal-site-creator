@@ -302,8 +302,20 @@ clear
 
 echo -e "${blue}Creating new DDev Drupal site${reset}"
 echo -e " "
-read -p 'Sitename [Dev] : ' initial_sitename
-initial_sitename=${initial_sitename:-Dev}
+
+# Loop until valid input is provided
+while true; do
+  read -p 'Sitename [Dev] : ' initial_sitename
+  initial_sitename=${initial_sitename:-Dev}
+
+  # Validate: first character must be a letter, rest can be alphanumeric or hyphen
+  if [[ "$initial_sitename" =~ ^[a-zA-Z][a-zA-Z0-9-]*$ ]]; then
+    break
+  else
+    echo "Invalid sitename. It must start with a letter and contain only letters, numbers, or hyphens."
+  fi
+done
+
 
 clear
 
