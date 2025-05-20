@@ -84,6 +84,8 @@ clear
 
 if [ "$drupal_cms" = "No" ]; then
 
+echo -e "${blue}Creating new DDev Drupal site${reset}"
+echo -e " "
 echo "Select a Drupal version"
 echo
 d_options=(
@@ -101,6 +103,8 @@ clear
 
 case "${d_options[$d_choice]}" in
 "11")
+echo -e "${blue}Creating new DDev Drupal site${reset}"
+echo -e " "
 echo "Select a Drupal 11 version"
 echo
 d11_options=(
@@ -132,6 +136,8 @@ d11_choice=$?
 drupal_version="${d11_options[d11_choice]}"
 ;;
 "10")
+echo -e "${blue}Creating new DDev Drupal site${reset}"
+echo -e " "
 echo "Select a Drupal 10 version"
 echo
 d10_options=(
@@ -147,6 +153,8 @@ d10_choice=$?
 drupal_version="${d10_options[d10_choice]}"
 ;;
 "9")
+echo -e "${blue}Creating new DDev Drupal site${reset}"
+echo -e " "
 echo "Select a Drupal 9 version"
 echo
 d9_options=(
@@ -163,6 +171,8 @@ d9_choice=$?
 drupal_version="${d9_options[d9_choice]}"
 ;;
 "8")
+echo -e "${blue}Creating new DDev Drupal site${reset}"
+echo -e " "
 echo "Select a Drupal 8 version"
 echo
 d8_options=(
@@ -288,7 +298,8 @@ case "$drupal_version" in
     ;;
 esac
 
-
+echo -e "${blue}Creating new DDev Drupal site${reset}"
+echo -e " "
 echo "Select a PHP version"
 echo
 select_option "${php_options[@]}"
@@ -318,7 +329,8 @@ done
 
 
 clear
-
+echo -e "${blue}Creating new DDev Drupal site${reset}"
+echo -e " "
 echo "Do you want to suffix the sitename with 6 random digits?"
 echo
 suffix_digits_options=(
@@ -332,7 +344,8 @@ suffix_digits_choice="${suffix_digits_options[$suffix_digits_options_choice]}"
 
 
 clear
-
+echo -e "${blue}Creating new DDev Drupal site${reset}"
+echo -e " "
 echo "Do you want to add the drupal version to the site name?"
 echo
 add_drupal_version_to_sitename_options=(
@@ -342,20 +355,24 @@ No
 
 select_option "${add_drupal_version_to_sitename_options[@]}"
 add_drupal_version_to_sitename_options_choice=$?
-add_drupal_version_to_sitename="${add_drupal_version_to_sitename_options[$add_drupal_version_to_sitename_options_choice]}"
-
+add_drupal_version_to_choice="${add_drupal_version_to_sitename_options[$add_drupal_version_to_sitename_options_choice]}"
 
 clear
 
 site_number=$(printf "%06d" $(( RANDOM % 1000000 )))
 
 if [ "$suffix_digits_choice" = "Yes" ]; then
-  sitename="${initial_sitename}-${site_number}"
-    if [ "$add_drupal_version_to_sitename" = "Yes" ]; then
+    if [ "$add_drupal_version_to_choice" = "Yes" ]; then
     sitename="${initial_sitename}-${basic_drupal_version}-${site_number}"
+    else
+    sitename="${initial_sitename}-${site_number}"
     fi
+
 else
-  sitename="${initial_sitename}"
+    sitename="${initial_sitename}"
+    if [ "$add_drupal_version_to_choice" = "Yes" ]; then
+    sitename="${initial_sitename}-${basic_drupal_version}"
+    fi
 fi
 
 clear
@@ -508,6 +525,8 @@ if [ "$drupal_cms" = "No" ]; then
 
 
 if [ "$basic_drupal_version" = "11" ]; then
+echo -e "${blue}Creating new DDev Drupal site${reset}"
+echo -e " "
 echo "Do you want development modules installed? (composer-patches, core-dev, devel, examples, admin_toolbar, webprofiler)"
 echo
 dev_modules_options=(
@@ -523,6 +542,8 @@ fi
 
 clear
 
+echo -e "${blue}Creating new DDev Drupal site${reset}"
+echo -e " "
 echo "Do you want other dev things enabled? (Twig development mode, JS and CSS aggregation, render cache, dynamic page cache, and page cache are bypassed )"
 echo
 dev_things_options=(
@@ -536,7 +557,8 @@ dev_things="${dev_things_options[$dev_things_options_choice]}"
 
 clear
 
-
+echo -e "${blue}Creating new DDev Drupal site${reset}"
+echo -e " "
 echo "Do you want a custom module set up?"
 echo
 custom_module_options=(
@@ -550,6 +572,8 @@ custom_module="${custom_module_options[$custom_module_options_choice]}"
 
 clear
 
+echo -e "${blue}Creating new DDev Drupal site${reset}"
+echo -e " "
 echo "Do you want a custom theme set up?"
 echo
 custom_theme_options=(
@@ -564,6 +588,8 @@ custom_theme="${custom_theme_options[$custom_theme_options_choice]}"
 
 clear
 
+echo -e "${blue}Creating new DDev Drupal site${reset}"
+echo -e " "
 echo "Do you want to initalize a git repo?"
 echo
 git_options=(
@@ -578,24 +604,52 @@ git_choice="${git_options[$git_options_choice]}"
 
 clear
 
-# echo "Do you want to work on an issue?"
-# echo
-# issue_options=(
-# Yes
-# No
-# )
+echo -e "${blue}Creating new DDev Drupal site${reset}"
+echo -e " "
+echo "Do you want to work on an issue?"
+echo
+issue_options=(
+Yes
+No
+)
 
-# select_option "${issue_options[@]}"
-# issue_options_choice=$?
-# issue_choice="${issue_options[$issue_options_choice]}"
+select_option "${issue_options[@]}"
+issue_options_choice=$?
+issue_choice="${issue_options[$issue_options_choice]}"
 
-# clear
+clear
 
-# if [ "$issue_choice" = "Yes" ]; then
-#   read -p 'Issue number [] : ' issue_number
-# issue_number=${issue_number:}
-# fi
-# fi
+# Ask for issue number
+if [ "$issue_choice" = "Yes" ]; then
+  while true; do
+    echo -e "${blue}Creating new DDev Drupal site${reset}"
+    echo -e " "
+    read -p 'Issue number [] : ' issue_number
+    if [[ "$issue_number" =~ ^[0-9]{1,8}$ ]]; then
+      break
+    else
+      echo "Invalid input. Issue number must be numeric and up to 8 digits."
+    fi
+  done
+fi
+
+clear
+
+# Ask for issue project name
+if [ "$issue_choice" = "Yes" ]; then
+  while true; do
+    echo -e "${blue}Creating new DDev Drupal site${reset}"
+    echo -e " "
+    read -p 'Project name [] : ' project_name
+    if [[ "$project_name" =~ ^[A-Za-z_]{1,100}$ ]]; then
+      break
+    else
+      echo "Invalid input. Project name must contain only letters and underscores, and be up to 100 characters."
+    fi
+  done
+fi
+
+
 clear
 
 echo -e "${blue}Creating new DDev Drupal site${reset}"
@@ -619,9 +673,10 @@ echo -e "Dev settings : ${green}$dev_things${reset}"
 echo -e "Custom Module : ${green}$custom_module${reset}"
 echo -e "Custom Theme : ${green}$custom_theme${reset}"
 echo -e "Git repo : ${green}$git_choice${reset}"
-# if [ "$issue_choice" = "Yes" ]; then
-# echo -e "Issue Number : ${green}$issue_number${reset}"
-# fi
+if [ "$issue_choice" = "Yes" ]; then
+echo -e "Issue Number : ${green}$issue_number${reset}"
+echo -e "Issue Project : ${green}$project_name${reset}"
+fi
 echo -e "You may need to enter your password for sudo or allow escalation. So don't walk away just yet."
 fi
 
@@ -654,8 +709,14 @@ ddev drush site:install --account-name=$username --account-pass=$password -y --s
 # Create the modules custom directory
 mkdir -p web/modules/custom
 
+# Create the modules contrib directory
+mkdir -p web/modules/contrib
+
 # Create the themes custom directory
 mkdir -p web/themes/custom
+
+# Create the themes contrib directory
+mkdir -p web/themes/contrib
 
 # Create the config directory
 mkdir -p config
@@ -709,7 +770,6 @@ ddev drush config:set system.theme twig_debug TRUE --yes
 # Enable twig development mode and do not cache markup
 ddev drush php:eval "\Drupal::keyValue('development_settings')->setMultiple(['disable_rendered_output_cache_bins' => TRUE, 'twig_debug' => TRUE, 'twig_cache_disable' => TRUE]);"
 fi
-
 
 if [ "$custom_module" = "Yes" ]; then
 
@@ -821,6 +881,92 @@ sanitized_title=$(sanitize_site_title "$site_title")
 
 # Set the Site Title
 ddev drush config:set system.site name "$sanitized_title" --yes
+
+
+# Issue commands
+if [ "$issue_choice" = "Yes" ]; then
+
+# Issue queue URL to scrape
+issue_url="https://www.drupal.org/project/${project_name}/issues/${issue_number}"
+# Use a Python script inline to extract branch name from the page
+link_text=$(python3 <<EOF
+import requests
+from bs4 import BeautifulSoup
+
+# Issue queue URL to scrape
+issue_url="$issue_url"
+issue_response = requests.get(issue_url)
+issue_soup = BeautifulSoup(issue_response.text, "html.parser")
+
+# Find the first element with class "remote-add-ssh"
+link = issue_soup.find('a', attrs={'title': 'View branch in GitLab'})
+if link:
+    print(link.text.strip())
+EOF
+)
+
+# Work out if Module or theme here..
+# Use a Python script inline to extract name from the page
+MT_project_type_raw=$(python3 <<EOF
+import requests
+from bs4 import BeautifulSoup
+
+# Issue queue URL to scrape
+issue_url="$issue_url"
+issue_response = requests.get(issue_url)
+issue_soup = BeautifulSoup(issue_response.text, "html.parser")
+
+# Find the <nav> by class
+nav = issue_soup.find('nav', class_='breadcrumb container-12')
+
+# Get the first <a> tag inside it
+if nav:
+    first_link = nav.find('a')
+    if first_link:
+        print(first_link.text.strip())  # Output: Modules
+EOF
+)
+
+
+# Change to the right project directory here..
+if [ "$MT_project_type_raw" = "Modules" ]; then
+  MT_project_type="modules"
+else
+  MT_project_type="themes"
+fi
+
+cd web/${MT_project_type}/contrib/
+
+# Setting up repository for the first time
+git_clone_url="https://git.drupalcode.org/project/${project_name}.git"
+echo -e "Git clone url : ${green}$git_clone_url${reset}"
+
+# Add & fetch this issue fork’s repository
+git_remote_add="git remote add ${project_name}-${issue_number} git@git.drupal.org:issue/${project_name}-${issue_number}.git"
+git_fetch="git fetch ${project_name}-${issue_number}"
+
+# Setting up repository for the first time
+git clone ${git_clone_url}
+cd ${project_name}
+
+# Add & fetch this issue fork’s repository
+${git_remote_add}
+${git_fetch}
+
+# Check out this branch for the first time
+git checkout -b "${link_text}" --track ${project_name}-${issue_number}/"${link_text}"
+
+cd ../../../
+
+# Enable issue module
+# Commented out because this does not work if there are dependancies
+# if [ "$MT_project_type" = "modules" ]; then
+# ddev drush en "$project_name"
+# fi
+
+# End of issue project  section
+fi
+
 
 if [ "$git_choice" = "Yes" ]; then
 # Initalize git repo
