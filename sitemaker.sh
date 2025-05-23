@@ -382,13 +382,26 @@ echo -e " "
 echo -e "Sitename : ${green}$sitename${reset}"
 
 
-# Assume initial_sitename is already set earlier
-default_site_title="${sitename}"
+while true; do
+  read -p "Site Title [${default_site_title}] : " site_title
+  site_title=${site_title:-$default_site_title}
 
-read -p "Site Title [${default_site_title}] : " site_title
-site_title=${site_title:-$default_site_title}
+  # Trim to first 100 characters
+  site_title=${site_title:0:100}
 
-echo "Using site title: $site_title"
+  # Sanitize: remove unsafe characters
+  sanitized_title=$(echo "$site_title" | sed 's/[^a-zA-Z0-9 ._-]//g')
+
+  # Check if sanitized version is equal to input and not empty
+  if [[ "$sanitized_title" == "$site_title" && -n "$site_title" ]]; then
+    break
+  else
+    echo "Invalid site title. Only letters, numbers, spaces, dashes (-), underscores (_), and dots (.) are allowed. Max length: 100 characters."
+  fi
+done
+
+# Optional: confirm valid title
+echo "Using site title: '$site_title'"
 
 clear
 
@@ -987,7 +1000,6 @@ ddev drush cr
 # export config
 ddev drush cex -y
 
-
 if [ "$git_choice" = "Yes" ]; then
 git add .
 git commit -m "Initial commit" -q
@@ -997,7 +1009,6 @@ fi
 ddev drush cr
 
 yes | ddev restart
-
 
 # End if statement if not DrupalCMS
 fi
