@@ -409,8 +409,21 @@ echo -e "${blue}Creating new DDev Drupal site${reset}"
 echo -e " "
 echo -e "Sitename : ${green}$sitename${reset}"
 echo -e "Site Title : ${green}$site_title${reset}"
-read -p "Username [admin]: " username
-username=${username:-admin}
+
+while true; do
+  read -p "Username [admin]: " username
+  username=${username:-admin}
+
+  # Check: valid characters and length (3 to 60)
+  if [[ "$username" =~ ^[a-zA-Z0-9._-]{3,60}$ ]]; then
+    break
+  else
+    echo "Invalid username. Use 3–60 characters: letters, numbers, dot (.), dash (-), or underscore (_)."
+  fi
+done
+
+echo "Using username: $username"
+
 
 clear
 echo -e "${blue}Creating new DDev Drupal site${reset}"
