@@ -82,7 +82,7 @@ drupal_cms="${drupal_cms_options[$drupal_cms_options_choice]}"
 
 clear
 
-if [ "$drupal_cms" = "No" ]; then
+if [ "$drupal_cms" = "No" ]; then # end of this if statement 309
 
 echo -e "${blue}Creating new DDev Drupal site${reset}"
 echo -e " "
@@ -306,8 +306,31 @@ select_option "${php_options[@]}"
 php_choice=$?
 phpversion="${php_options[$php_choice]}"
 
+# End of this if statement 85
+fi
+
+
+if [ "$drupal_cms" = "Yes" ]; then
+
+echo -e "${blue}Creating new DDev Drupal site${reset}"
+echo -e " "
+echo "Do you want to go through the site install steps in Drupal CMS site GUI, or automate it using this script?"
+echo
+dcms_auto_install_options=(
+ "Install using Drupal CMS"
+ "Use this script"
+)
+
+select_option "${dcms_auto_install_options[@]}"
+dcms_auto_install_options_choice=$?
+dcms_install="${dcms_auto_install_options[$dcms_auto_install_options_choice]}"
+
+echo -e "$dcms_install"
 
 fi
+
+# Start of if statement.. end 509
+if [ "$dcms_install" = "Use this script" ] || [ "$drupal_cms" = "No" ]; then
 
 clear
 
@@ -405,6 +428,24 @@ while true; do
   fi
 done
 
+# Sanitize the site title
+sanitize_site_title() {
+  local input="$1"
+
+  # Trim leading/trailing whitespace
+  input="$(echo "$input" | sed -e 's/^[[:space:]]*//' -e 's/[[:space:]]*$//')"
+
+  # Remove control characters (non-printable)
+  input="$(echo "$input" | tr -dC '[:print:]')"
+
+  # Replace dangerous shell characters with dashes or nothing
+  input="$(echo "$input" | sed 's/["'\''`\\$&<>|]/-/g')"
+
+  echo "$input"
+}
+
+sanitized_title=$(sanitize_site_title "$site_title")
+
 # Optional: confirm valid title
 echo "Using site title: '$site_title'"
 
@@ -465,6 +506,8 @@ while true; do
     fi
 done
 
+fi
+# End of if statement 330
 
 clear
 
@@ -711,8 +754,15 @@ fi
 echo -e "You may need to enter your password for sudo or allow escalation. So don't walk away just yet."
 fi
 
+# make the directory and cd into it
+if [ "$drupal_cms" = "Yes" ]; then
+sitename="dcms"
 mkdir $sitename
 cd $sitename
+else
+mkdir $sitename
+cd $sitename
+fi
 
 if [ "$drupal_cms" = "No" ]; then
 project_type="drupal${basic_drupal_version}"
@@ -725,7 +775,15 @@ recommended_project="recommended-project:^${basic_drupal_version}"
 ddev config --project-type=$project_type --docroot=web
 ddev start
 if [ "$drupal_cms" = "Yes" ]; then
+
 ddev composer create drupal/cms
+
+# Use site info we collected if appropriate
+if [ "$dcms_install" = "Use this script" ]; then
+ddev drush site:install --account-name=$username --account-pass=$password -y --site-name=$sitename
+ddev drush config:set system.site name "$sanitized_title" --yes
+fi
+
 else
 ddev composer create drupal/$recommended_project
 
@@ -735,6 +793,7 @@ else
 ddev composer require drush/drush:^$drush_version
 fi
 
+# Do the site install using drush
 ddev drush site:install --account-name=$username --account-pass=$password -y --site-name=$sitename
 
 # Create the modules custom directory
@@ -766,7 +825,6 @@ mkdir -p .vscode
 
 # copy vscode file over
 cp ../Extras/launch.json .vscode/launch.json
-
 
 # Allow plugin sources
 if [ "$dev_things" = "Yes" ]; then
@@ -892,27 +950,8 @@ fi
 # Enable phpmyadmin in DDev
 yes | ddev phpmyadmin
 
-# Sanitize the site title
-sanitize_site_title() {
-  local input="$1"
-
-  # Trim leading/trailing whitespace
-  input="$(echo "$input" | sed -e 's/^[[:space:]]*//' -e 's/[[:space:]]*$//')"
-
-  # Remove control characters (non-printable)
-  input="$(echo "$input" | tr -dC '[:print:]')"
-
-  # Replace dangerous shell characters with dashes or nothing
-  input="$(echo "$input" | sed 's/["'\''`\\$&<>|]/-/g')"
-
-  echo "$input"
-}
-
-sanitized_title=$(sanitize_site_title "$site_title")
-
 # Set the Site Title
 ddev drush config:set system.site name "$sanitized_title" --yes
-
 
 # Issue commands
 if [ "$issue_choice" = "Yes" ]; then
