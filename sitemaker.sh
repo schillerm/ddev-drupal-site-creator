@@ -381,6 +381,7 @@ echo -e "${blue}Creating new DDev Drupal site${reset}"
 echo -e " "
 echo -e "Sitename : ${green}$sitename${reset}"
 
+default_site_title=${sitename//-/ }
 
 while true; do
   read -p "Site Title [${default_site_title}] : " site_title
