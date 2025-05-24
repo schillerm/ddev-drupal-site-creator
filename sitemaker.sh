@@ -342,8 +342,12 @@ select_option "${suffix_digits_options[@]}"
 suffix_digits_options_choice=$?
 suffix_digits_choice="${suffix_digits_options[$suffix_digits_options_choice]}"
 
+if [ "$drupal_cms" = "Yes" ]; then
+basic_drupal_version=11
+fi
 
 clear
+
 echo -e "${blue}Creating new DDev Drupal site${reset}"
 echo -e " "
 echo "Do you want to add the drupal version to the site name?"
