@@ -680,7 +680,7 @@ clear
 
 echo -e "${blue}Creating new DDev Drupal site${reset}"
 echo -e " "
-echo "Do you want to work on an issue?"
+echo "Do you want to work on an issue? This will clone the project, add and fetch the issue fork's repository and check out the issue branch."
 echo
 issue_options=(
 Yes
@@ -693,36 +693,24 @@ issue_choice="${issue_options[$issue_options_choice]}"
 
 clear
 
-# Ask for issue number
+# Ask for issue url
 if [ "$issue_choice" = "Yes" ]; then
   while true; do
     echo -e "${blue}Creating new DDev Drupal site${reset}"
     echo -e " "
-    read -p 'Issue number [] : ' issue_number
-    if [[ "$issue_number" =~ ^[0-9]{1,8}$ ]]; then
+    read -p 'Issue URL [] : ' issue_url
+    # Validate against expected Drupal.org issue URL format
+    if [[ "$issue_url" =~ ^https:\/\/www\.drupal\.org\/project\/([a-zA-Z0-9_\-]+)\/issues\/([0-9]{1,8})$ ]]; then
+      # Extract using BASH_REMATCH from the regex
+      project_name="${BASH_REMATCH[1]}"
+      issue_number="${BASH_REMATCH[2]}"
       break
     else
-      echo "Invalid input. Issue number must be numeric and up to 8 digits."
+      echo "Invalid input. Issue URL must match:"
+      echo "https://www.drupal.org/project/[project-name]/issues/[issue-number]"
     fi
   done
 fi
-
-clear
-
-# Ask for issue project name
-if [ "$issue_choice" = "Yes" ]; then
-  while true; do
-    echo -e "${blue}Creating new DDev Drupal site${reset}"
-    echo -e " "
-    read -p 'Project name [] : ' project_name
-    if [[ "$project_name" =~ ^[A-Za-z_]{1,100}$ ]]; then
-      break
-    else
-      echo "Invalid input. Project name must contain only letters and underscores, and be up to 100 characters."
-    fi
-  done
-fi
-
 
 clear
 
@@ -956,8 +944,6 @@ ddev drush config:set system.site name "$sanitized_title" --yes
 # Issue commands
 if [ "$issue_choice" = "Yes" ]; then
 
-# Issue queue URL to scrape
-issue_url="https://www.drupal.org/project/${project_name}/issues/${issue_number}"
 # Use a Python script inline to extract branch name from the page
 link_text=$(python3 <<EOF
 import requests
