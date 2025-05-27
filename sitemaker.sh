@@ -69,7 +69,7 @@ reset="\e[0m"
 clear
 echo -e "${blue}Creating new DDev Drupal site${reset}"
 echo -e " "
-echo "Do you want to install DrupalCMS?"
+echo "Do you want to install a DrupalCMS site?"
 echo
 drupal_cms_options=(
 No
@@ -424,7 +424,7 @@ while true; do
   if [[ "$sanitized_title" == "$site_title" && -n "$site_title" ]]; then
     break
   else
-    echo "Invalid site title. Only letters, numbers, spaces, dashes (-), underscores (_), and dots (.) are allowed. Max length: 100 characters."
+    echo "Invalid site title. Only letters, numbers, spaces, dashes, underscores, and dots are allowed. Max length: 100 characters."
   fi
 done
 
@@ -601,7 +601,7 @@ if [ "$drupal_cms" = "No" ]; then
 if [ "$basic_drupal_version" = "11" ]; then
 echo -e "${blue}Creating new DDev Drupal site${reset}"
 echo -e " "
-echo "Do you want development modules installed? (composer-patches, core-dev, devel, examples, admin_toolbar, webprofiler)"
+echo -e "Do you want development modules installed?\n\nIncluding composer-patches, core-dev, devel, examples, admin_toolbar, webprofiler"
 echo
 dev_modules_options=(
 Yes
@@ -618,7 +618,7 @@ clear
 
 echo -e "${blue}Creating new DDev Drupal site${reset}"
 echo -e " "
-echo "Do you want other dev things enabled? (Twig development mode, JS and CSS aggregation, render cache, dynamic page cache, and page cache are bypassed )"
+echo -e "Do you want other development settings enabled?\n\nTwig development mode, JS and CSS aggregation, render cache, dynamic page cache, and page cache are bypassed."
 echo
 dev_things_options=(
 Yes
@@ -680,7 +680,7 @@ clear
 
 echo -e "${blue}Creating new DDev Drupal site${reset}"
 echo -e " "
-echo "Do you want to work on an issue? This will clone the project, add and fetch the issue fork's repository and check out the issue branch."
+echo -e "Do you want to work on an issue?\n\nThis will clone the project, add and fetch the issue fork's repository and check out the issue branch."
 echo
 issue_options=(
 Yes
