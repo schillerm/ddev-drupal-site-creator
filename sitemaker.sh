@@ -108,6 +108,8 @@ echo -e " "
 echo "Select a Drupal 11 version"
 echo
 d11_options=(
+ 11.x-dev
+ 11.1.7
  11.1.6
  11.1.5
  11.1.4
@@ -191,7 +193,7 @@ clear
 
 
 case "$drupal_version" in
-  "11.1.6"|"11.1.5"|"11.1.4"|"11.1.3"|"11.1.2"|"11.1.1"|"11.1.0")
+  "11.x-dev"|"11.1.7"|"11.1.6"|"11.1.5"|"11.1.4"|"11.1.3"|"11.1.2"|"11.1.1"|"11.1.0")
     php_options=(
       8.4
       8.3
@@ -636,8 +638,8 @@ echo -e " "
 echo "Do you want a custom module set up?"
 echo
 custom_module_options=(
-Yes
 No
+Yes
 )
 
 select_option "${custom_module_options[@]}"
@@ -651,8 +653,8 @@ echo -e " "
 echo "Do you want a custom theme set up?"
 echo
 custom_theme_options=(
-Yes
 No
+Yes
 )
 
 select_option "${custom_theme_options[@]}"
@@ -944,7 +946,7 @@ ddev drush config:set system.site name "$sanitized_title" --yes
 # Issue commands
 if [ "$issue_choice" = "Yes" ]; then
 
-# Use a Python script inline to extract branch name from the page
+# Use a Python script inline to extract link text from the page
 link_text=$(python3 <<EOF
 import requests
 from bs4 import BeautifulSoup
@@ -1012,15 +1014,10 @@ ${git_fetch}
 # Check out this branch for the first time
 git checkout -b "${link_text}" --track ${project_name}-${issue_number}/"${link_text}"
 
-cd ../../../
+cd ../../../../
 
-# Enable issue module
-# Commented out because this does not work if there are dependancies
-# if [ "$MT_project_type" = "modules" ]; then
-# ddev drush en "$project_name"
-# fi
 
-# End of issue project  section
+# End of issue project section
 fi
 
 
@@ -1035,8 +1032,8 @@ echo "\$settings['config_sync_directory'] = '../config/default/sync';" >> web/si
 echo "\$settings['file_private_path'] = '../private';" >> web/sites/default/settings.php
 echo "\$settings['skip_permissions_hardening'] = FALSE;" >> web/sites/default/settings.php
 
-chmod 644 sites/default/settings.php
-chmod 755 sites/default
+chmod 644 web/sites/default/settings.php
+chmod 755 web/sites/default
 
 ddev drush cr
 
