@@ -346,7 +346,7 @@ if [ "$dcms_install" = "Use this script" ] || [ "$drupal_cms" = "No" ]; then
   # Loop until valid input is provided
   while true; do
     read -p 'Sitename [Dev] : ' initial_sitename
-    initial_sitename=${initial_sitename:-Dev}
+    initial_sitename="${initial_sitename:-Dev}"
 
     # Validate: first character must be a letter, rest can be alphanumeric or hyphen
     if [[ "$initial_sitename" =~ ^[a-zA-Z][a-zA-Z0-9-]*$ ]]; then
@@ -413,14 +413,14 @@ if [ "$dcms_install" = "Use this script" ] || [ "$drupal_cms" = "No" ]; then
   echo -e " "
   echo -e "Sitename : ${green}$sitename${reset}"
 
-  default_site_title=${sitename//-/ }
+  default_site_title="${sitename//-/ }"
 
   while true; do
-    read -p "Site Title [${default_site_title}] : " site_title
-    site_title=${site_title:-$default_site_title}
+    read -p "Site Title ["${default_site_title}"] : " site_title
+    site_title=${site_title:-"$default_site_title"}
 
     # Trim to first 100 characters
-    site_title=${site_title:0:100}
+    site_title="${site_title:0:100}"
 
     # Sanitize: remove unsafe characters
     sanitized_title=$(echo "$site_title" | sed 's/[^a-zA-Z0-9 ._-]//g')
@@ -463,7 +463,7 @@ if [ "$dcms_install" = "Use this script" ] || [ "$drupal_cms" = "No" ]; then
 
   while true; do
     read -p "Username [admin]: " username
-    username=${username:-admin}
+    username="${username:-admin}"
 
     # Check: valid characters and length (3 to 60)
     if [[ "$username" =~ ^[a-zA-Z0-9._-]{3,60}$ ]]; then
@@ -484,7 +484,7 @@ if [ "$dcms_install" = "Use this script" ] || [ "$drupal_cms" = "No" ]; then
 
   while true; do
     read -p 'Email [someone@example.com]: ' email
-    email=${email:-someone@example.com}
+    email="${email:-someone@example.com}"
     if [ -z "$email" ]; then
       echo "Please enter an email address!"
     else
@@ -502,7 +502,7 @@ if [ "$dcms_install" = "Use this script" ] || [ "$drupal_cms" = "No" ]; then
 
   while true; do
     read -p 'Password [admin]: ' password
-    password=${password:-admin}
+    password="${password:-admin}"
     if [ -z "$password" ]; then
       echo "Please enter a password!"
     else
@@ -860,12 +860,12 @@ else
     git_fetch="git fetch ${project_name}-${issue_number}"
 
     # Setting up repository for the first time
-    git clone ${git_clone_url}
-    cd ${project_name}
+    git clone "${git_clone_url}"
+    cd "${project_name}"
 
     # Add & fetch this issue fork’s repository
-    ${git_remote_add}
-    ${git_fetch}
+    "${git_remote_add}"
+    "${git_fetch}"
 
     # Check out this branch for the first time
     git checkout -b "${link_text}" --track ${project_name}-${issue_number}/"${link_text}"
