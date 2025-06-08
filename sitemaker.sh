@@ -88,7 +88,7 @@ drupal_cms="${drupal_cms_options[$drupal_cms_options_choice]}"
 
 clear
 
-if [ "$drupal_cms" = "No" ]; then # end of this if statement 312
+if [ "$drupal_cms" = "No" ]; then
 
   echo -e "${blue}Creating new DDev Drupal site${reset}"
   echo -e " "
@@ -313,7 +313,6 @@ if [ "$drupal_cms" = "No" ]; then # end of this if statement 312
   php_choice=$?
   phpversion="${php_options[$php_choice]}"
 
-# End of this if statement 85
 fi
 
 if [ "$drupal_cms" = "Yes" ]; then
@@ -335,7 +334,6 @@ if [ "$drupal_cms" = "Yes" ]; then
 
 fi
 
-# Start of if statement.. end 509
 if [ "$dcms_install" = "Use this script" ] || [ "$drupal_cms" = "No" ]; then
 
   clear
@@ -511,7 +509,6 @@ if [ "$dcms_install" = "Use this script" ] || [ "$drupal_cms" = "No" ]; then
   done
 
 fi
-# End of if statement 330
 
 clear
 
@@ -664,7 +661,17 @@ if [ "$drupal_cms" = "No" ]; then
 
   echo -e "${blue}Creating new DDev Drupal site${reset}"
   echo -e " "
-  echo -e "Do you want to work on an issue?\n\nThis will clone the project, add and fetch the issue fork's repository and check out the issue branch."
+  echo -e "\nDo you want to work on an issue?\n
+This will:
+
+  • Clone the project
+  • Add and fetch the issue fork's repository
+  • Check out the issue branch
+
+If this is a core issue, a site will be installed using the justafish/ddev-drupal-core-dev add-on.
+
+This means the sitename, site title, user, and password will NOT be configurable.\n"
+
   echo
   issue_options=(
     Yes
@@ -725,7 +732,7 @@ if [ "$drupal_cms" = "No" ]; then
   echo -e "You may need to enter your password for sudo or allow escalation. So don't walk away just yet."
 fi
 
-# make the directory and cd into it
+# Make the directory and cd into it
 if [ "$drupal_cms" = "Yes" ]; then
   sitename="dcms"
   mkdir $sitename
@@ -780,10 +787,10 @@ EOF
 
     # Set the project type ..
     case "$MT_project_type_raw" in
-    "modules")
+    "Modules")
       MT_project_type="modules"
       ;;
-    "themes")
+    "Themes")
       MT_project_type="themes"
       ;;
     "Drupal core")
@@ -799,6 +806,7 @@ EOF
 
   clear
 
+  # Not sure if this bit makes sense..
   if [ "$issue_choice" = "No" ] || [ "$MT_project_type" != "core" ]; then
     echo -e "${blue}Creating new DDev Drupal site${reset}"
     echo -e " "
@@ -817,6 +825,7 @@ EOF
 
   # Here we check if we need to make a new site directory
   if [ "$issue_choice" = "Yes" ] && [ "$MT_project_type" = "core" ]; then
+
     nothing="nothing"
   else
     mkdir "$sitename"
@@ -831,14 +840,14 @@ fi
 
 if [ "$MT_project_type" != "core" ]; then
   recommended_project="recommended-project:^${basic_drupal_version}"
-  ddev config --project-type=$project_type --docroot=web
+  ddev config --project-type="$project_type" --docroot=web
   ddev start
 fi
 
 # DrupalCMS install starts here ##############################
 if [ "$drupal_cms" = "Yes" ]; then
 
-  ddev composer create drupal/cms
+  ddev composer create-project drupal/cms
 
   # Use site info we collected if appropriate
   if [ "$dcms_install" = "Use this script" ]; then
@@ -852,243 +861,285 @@ else
   if [ "$issue_choice" = "Yes" ] && [ "$MT_project_type" = "core" ]; then
     # install using drupal issue fork
     # Setting up repository for the first time
-    git_clone_url="https://git.drupalcode.org/project/${project_name}.git"
-    echo -e "Git clone url : ${green}$git_clone_url${reset}"
-
-    # Add & fetch this issue fork’s repository
-    git_remote_add="git remote add ${project_name}-${issue_number} git@git.drupal.org:issue/${project_name}-${issue_number}.git"
-    git_fetch="git fetch ${project_name}-${issue_number}"
-
-    # Setting up repository for the first time
-    git clone "${git_clone_url}"
-    cd "${project_name}"
-
-    # Add & fetch this issue fork’s repository
-    "${git_remote_add}"
-    "${git_fetch}"
-
-    # Check out this branch for the first time
-    git checkout -b "${link_text}" --track ${project_name}-${issue_number}/"${link_text}"
+    git clone https://git.drupalcode.org/project/drupal.git "$sitename"
+    cd "$sitename"
 
     # Config ddev
-    ddev config --project-type drupal
-    ddev start
+    ddev config --omit-containers=db --disable-settings-management
 
     # Run a composer install
     ddev composer install
 
-    # get drush
-    ddev composer require drush/drush
+    # Get ddev-core-dev add on
+    ddev add-on get justafish/ddev-drupal-core-dev
 
-    # Do a site install
-    ddev drush site:install --account-name=$username --account-pass=$password -y --site-name=$sitename
+    # Run a site install
+    ddev drupal install standard
 
+    # Add & fetch this issue fork’s repository
+    git remote add "${project_name}-${issue_number}" \
+      "git@git.drupal.org:issue/${project_name}-${issue_number}.git"
+
+    # git fetch
+    git fetch "${project_name}-${issue_number}"
+
+    # Check out the branch
+    git checkout -b "${link_text}" --track "${project_name}-${issue_number}/${link_text}"
   else
-    # install normaly
-    ddev composer create drupal/$recommended_project
+
+    # Not Drupal core issue site, so install normally
+    ddev composer create-project "drupal/${recommended_project}"
 
     if [ "$basic_drupal_version" = "11" ]; then
       ddev composer require drush/drush
     else
-      ddev composer require drush/drush:^$drush_version
+      ddev composer require "drush/drush:^${drush_version}"
     fi
 
-    # Do the site install using drush
-    ddev drush site:install --account-name=$username --account-pass=$password -y --site-name=$sitename
+    # Site install using drush
+    ddev drush site:install \
+      --account-name="$username" \
+      --account-pass="$password" \
+      -y \
+      --site-name="$sitename"
+
+    if [ "$issue_choice" = "Yes" ] && [ "$MT_project_type" != "core" ]; then
+
+      # Create the modules custom directory
+      mkdir -p web/modules/custom
+
+      # Create the modules contrib directory
+      mkdir -p web/modules/contrib
+
+      # Create the themes custom directory
+      mkdir -p web/themes/custom
+
+      # Create the themes contrib directory
+      mkdir -p web/themes/contrib
+
+      # Go into contrib folder and clone issue module or theme
+      cd "web/${MT_project_type}/contrib/"
+
+      # Setting up repository for the first time
+      git_clone_url="https://git.drupalcode.org/project/${project_name}.git"
+
+      # Setting up repository for the first time
+      git clone ${git_clone_url}
+      cd ${project_name}
+
+      # Add & fetch this issue fork’s repository
+      git remote add "${project_name}-${issue_number}" "git@git.drupal.org:issue/${project_name}-${issue_number}.git"
+      git fetch "${project_name}-${issue_number}"
+
+      # Check out this branch for the first time
+      git checkout -b "${link_text}" --track "${project_name}-${issue_number}/${link_text}"
+
+      # CD back out of the directory
+      cd ../../../../
+
+    fi
+
   fi # End using drupal issue fork
 
-  # Create the modules custom directory
-  mkdir -p web/modules/custom
+  if [ "$issue_choice" = "Yes" ] && [ "$MT_project_type" = "core" ]; then
 
-  # Create the modules contrib directory
-  mkdir -p web/modules/contrib
+    # Create the modules custom directory
+    mkdir -p modules/custom
 
-  # Create the themes custom directory
-  mkdir -p web/themes/custom
+    # Create the modules contrib directory
+    mkdir -p modules/contrib
 
-  # Create the themes contrib directory
-  mkdir -p web/themes/contrib
+    # Create the themes custom directory
+    mkdir -p themes/custom
 
-  # Create the config directory
-  mkdir -p config
+    # Create the themes contrib directory
+    mkdir -p themes/contrib
 
-  # Create the config/default directory
-  mkdir -p config/default
+  else
 
-  # Create the config/default/sync directory
-  mkdir -p config/default/sync
+    # Create the modules custom directory
+    mkdir -p web/modules/custom
 
-  # Create the private directory
-  mkdir -p private
+    # Create the modules contrib directory
+    mkdir -p web/modules/contrib
 
-  # Create the .vscode directory
-  mkdir -p .vscode
+    # Create the themes custom directory
+    mkdir -p web/themes/custom
 
-  # copy vscode file over
-  cp ../Extras/launch.json .vscode/launch.json
+    # Create the themes contrib directory
+    mkdir -p web/themes/contrib
 
-  # Allow plugin sources
-  if [ "$dev_things" = "Yes" ]; then
-    ddev composer config allow-plugins.tbachert/spi true
-    ddev composer config allow-plugins.cweagans/composer-patches true
-  fi
-  ddev composer config extra.drupal-scaffold.gitignore true
+    # Create the config directory
+    mkdir -p config
 
-  if [ "$dev_modules" = "Yes" ]; then
+    # Create the config/default directory
+    mkdir -p config/default
 
-    # Install and enable useful dev modules
-    ddev composer require cweagans/composer-patches
-    ddev composer require drupal/core-dev --dev --update-with-all-dependencies
-    ddev composer require drupal/devel --dev
-    ddev composer require drupal/admin_toolbar --dev
-    ddev composer require drupal/examples --dev
-    ddev composer require drupal/webprofiler --dev
+    # Create the config/default/sync directory
+    mkdir -p config/default/sync
 
-    ddev drush en admin_toolbar
-    ddev drush en devel
-    ddev drush en devel_generate
-    ddev drush en examples
-    ddev drush en webprofiler -y
-  fi
+    # Create the private directory
+    mkdir -p private
 
-  if [ "$dev_things" = "Yes" ]; then
-    # Configure development settings
-    ddev drush -y config-set system.performance js.preprocess 0
-    ddev drush -y config-set system.performance css.preprocess 0
-    ddev drush config:set system.theme twig_debug TRUE --yes
+    # Create the .vscode directory
+    mkdir -p .vscode
 
-    # Enable twig development mode and do not cache markup
-    ddev drush php:eval "\Drupal::keyValue('development_settings')->setMultiple(['disable_rendered_output_cache_bins' => TRUE, 'twig_debug' => TRUE, 'twig_cache_disable' => TRUE]);"
-  fi
+    # copy vscode file over
+    cp ../Extras/launch.json .vscode/launch.json
 
-  if [ "$custom_module" = "Yes" ]; then
+    if [ "$dev_things" = "Yes" ]; then
+      # Allow plugin sources
+      ddev composer config allow-plugins.tbachert/spi true
+      ddev composer config allow-plugins.cweagans/composer-patches true
 
-    module_name="${sitename}-module"
-    module_name="${module_name,,}"
-    module_name="${module_name//-/_}"
+      # Configure development settings
+      ddev drush -y config-set system.performance js.preprocess 0
+      ddev drush -y config-set system.performance css.preprocess 0
+      ddev drush config:set system.theme twig_debug TRUE --yes
 
-    # Run the drush generate command to create the module
-    ddev drush generate -q module \
-      --answer="Test module" \
-      --answer="$module_name" \
-      --answer="My test module" \
-      --answer="Custom" \
-      --answer="" \
-      --answer="Yes" \
-      --answer="Yes" \
-      --answer="No"
+      # Enable twig development mode and do not cache markup
+      ddev drush php:eval "\Drupal::keyValue('development_settings')->setMultiple(['disable_rendered_output_cache_bins' => TRUE, 'twig_debug' => TRUE, 'twig_cache_disable' => TRUE]);"
+    fi
+    ddev composer config extra.drupal-scaffold.gitignore true
 
-    # Create module folders
-    cd "web/modules/custom/$module_name"
-    mkdir js
-    mkdir css
-    mkdir config
-    mkdir config/install
-    mkdir src
-    mkdir src/Controller
-    cd ../../../../
+    if [ "$dev_modules" = "Yes" ]; then
 
-    ddev drush en "$module_name"
+      # Install and enable useful dev modules
+      ddev composer require cweagans/composer-patches
+      ddev composer require drupal/core-dev --dev --update-with-all-dependencies
+      ddev composer require drupal/devel --dev
+      ddev composer require drupal/admin_toolbar --dev
+      ddev composer require drupal/examples --dev
+      ddev composer require drupal/webprofiler --dev
 
-  fi
+      ddev drush en admin_toolbar
+      ddev drush en devel
+      ddev drush en devel_generate
+      ddev drush en examples
+      ddev drush en webprofiler -y
+    fi
 
-  if [ "$custom_theme" = "Yes" ]; then
+    if [ "$custom_module" = "Yes" ]; then
 
-    theme_name="${sitename}-theme"
-    theme_name="${theme_name,,}"
-    theme_name="${theme_name//-/_}"
+      module_name="${sitename}-module"
+      module_name="${module_name,,}"
+      module_name="${module_name//-/_}"
 
-    ddev drush generate -q theme \
-      --answer="Test Theme" \
-      --answer="$theme_name" \
-      --answer="Olivero" \
-      --answer="My test theme" \
-      --answer="Custom" \
-      --answer="No" \
-      --answer="No"
+      # Run the drush generate command to create the module
+      ddev drush generate -q module \
+        --answer="Test module" \
+        --answer="$module_name" \
+        --answer="My test module" \
+        --answer="Custom" \
+        --answer="" \
+        --answer="Yes" \
+        --answer="Yes" \
+        --answer="No"
 
-    rm "web/themes/custom/$theme_name/css/base/elements.css"
-    rm "web/themes/custom/$theme_name/css/layout/layout.css"
-    rm "web/themes/custom/$theme_name/css/component/block.css"
-    rm "web/themes/custom/$theme_name/css/component/tabs.css"
-    rm "web/themes/custom/$theme_name/css/component/breadcrumb.css"
-    rm "web/themes/custom/$theme_name/css/component/field.css"
-    rm "web/themes/custom/$theme_name/css/component/header.css"
-    rm "web/themes/custom/$theme_name/css/component/form.css"
-    rm "web/themes/custom/$theme_name/css/component/buttons.css"
-    rm "web/themes/custom/$theme_name/css/component/table.css"
-    rm "web/themes/custom/$theme_name/css/component/messages.css"
-    rm "web/themes/custom/$theme_name/css/component/sidebar.css"
-    rm "web/themes/custom/$theme_name/css/component/node.css"
-    rm "web/themes/custom/$theme_name/css/component/menu.css"
-    rm "web/themes/custom/$theme_name/css/theme/print.css"
+      # Create module folders
+      cd "web/modules/custom/$module_name"
+      mkdir js
+      mkdir css
+      mkdir config
+      mkdir config/install
+      mkdir src
+      mkdir src/Controller
+      cd ../../../../
 
-    # Create theme folders
-    mkdir "web/themes/custom/$theme_name/config"
-    mkdir "web/themes/custom/$theme_name/config/install"
+      ddev drush en "$module_name"
 
-    # Copy theme regions over
-    SOURCE_FILE=web/core/themes/olivero/olivero.info.yml
-    TARGET_FILE=web/themes/custom/$theme_name/$theme_name.info.yml
-    yq eval ".regions = load(\"$SOURCE_FILE\").regions" "$TARGET_FILE" -i
+    fi
 
-    # Enable the theme and set as default
-    ddev drush theme:enable $theme_name
-    ddev drush config:set $theme_name.settings logo.use_default 0 -y
-    ddev drush config:set system.theme default $theme_name -y
-  fi
+    if [ "$custom_theme" = "Yes" ]; then
 
-  # copy phpstan.neon over
-  cp ../Extras/phpstan.neon phpstan.neon
+      theme_name="${sitename}-theme"
+      theme_name="${theme_name,,}"
+      theme_name="${theme_name//-/_}"
 
-  if [ "$git_choice" = "Yes" ]; then
-    # copy .gitignore over
-    cp ../Extras/.gitignore .gitignore
-  fi
+      ddev drush generate -q theme \
+        --answer="Test Theme" \
+        --answer="$theme_name" \
+        --answer="Olivero" \
+        --answer="My test theme" \
+        --answer="Custom" \
+        --answer="No" \
+        --answer="No"
 
-  # Enable phpmyadmin in DDev
-  yes | ddev phpmyadmin
+      rm "web/themes/custom/$theme_name/css/base/elements.css"
+      rm "web/themes/custom/$theme_name/css/layout/layout.css"
+      rm "web/themes/custom/$theme_name/css/component/block.css"
+      rm "web/themes/custom/$theme_name/css/component/tabs.css"
+      rm "web/themes/custom/$theme_name/css/component/breadcrumb.css"
+      rm "web/themes/custom/$theme_name/css/component/field.css"
+      rm "web/themes/custom/$theme_name/css/component/header.css"
+      rm "web/themes/custom/$theme_name/css/component/form.css"
+      rm "web/themes/custom/$theme_name/css/component/buttons.css"
+      rm "web/themes/custom/$theme_name/css/component/table.css"
+      rm "web/themes/custom/$theme_name/css/component/messages.css"
+      rm "web/themes/custom/$theme_name/css/component/sidebar.css"
+      rm "web/themes/custom/$theme_name/css/component/node.css"
+      rm "web/themes/custom/$theme_name/css/component/menu.css"
+      rm "web/themes/custom/$theme_name/css/theme/print.css"
 
-  # Set the Site Title
-  ddev drush config:set system.site name "$sanitized_title" --yes
+      # Create theme folders
+      mkdir "web/themes/custom/$theme_name/config"
+      mkdir "web/themes/custom/$theme_name/config/install"
 
-  if [ "$git_choice" = "Yes" ]; then
-    # Initalize git repo
-    git init
-    git branch -M main
-  fi
+      # Copy theme regions over
+      SOURCE_FILE=web/core/themes/olivero/olivero.info.yml
+      TARGET_FILE=web/themes/custom/$theme_name/$theme_name.info.yml
+      yq eval ".regions = load(\"$SOURCE_FILE\").regions" "$TARGET_FILE" -i
 
-if [ "$issue_choice" = "Yes" ] && [ "$MT_project_type" = "core" ]; then
-  # Changes to settings.php
-  echo "\$settings['config_sync_directory'] = '../config/default/sync';" >>sites/default/settings.php
-  echo "\$settings['file_private_path'] = '../private';" >>sites/default/settings.php
-  echo "\$settings['skip_permissions_hardening'] = FALSE;" >>sites/default/settings.php
+      # Enable the theme and set as default
+      ddev drush theme:enable $theme_name
+      ddev drush config:set $theme_name.settings logo.use_default 0 -y
+      ddev drush config:set system.theme default $theme_name -y
+    fi
 
-  chmod 644 sites/default/settings.php
-  chmod 755 sites/default
-else
-  # Changes to settings.php
-  echo "\$settings['config_sync_directory'] = '../config/default/sync';" >>web/sites/default/settings.php
-  echo "\$settings['file_private_path'] = '../private';" >>web/sites/default/settings.php
-  echo "\$settings['skip_permissions_hardening'] = FALSE;" >>web/sites/default/settings.php
+    # Copy phpstan.neon over
+    cp ../Extras/phpstan.neon phpstan.neon
 
-  chmod 644 web/sites/default/settings.php
-  chmod 755 web/sites/default
-fi
+    if [ "$git_choice" = "Yes" ]; then
+      # Copy .gitignore over
+      cp ../Extras/.gitignore .gitignore
+    fi
 
-  ddev drush cr
+    # Enable phpmyadmin in DDev
+    yes | ddev phpmyadmin
 
-  # export config
-  ddev drush cex -y
+    # Set the Site Title
+    ddev drush config:set system.site name "$sanitized_title" --yes
 
-  if [ "$git_choice" = "Yes" ]; then
-    git add .
-    git commit -m "Initial commit" -q
-  fi
+    if [ "$git_choice" = "Yes" ]; then
+      # Initalize git repo
+      git init
+      git branch -M main
+    fi
 
-  ddev drush cr
+    # Changes to settings.php
+    echo "\$settings['config_sync_directory'] = '../config/default/sync';" >>"web/sites/default/settings.php"
+    echo "\$settings['file_private_path'] = '../private';" >>"web/sites/default/settings.php"
+    echo "\$settings['skip_permissions_hardening'] = FALSE;" >>"web/sites/default/settings.php"
 
-  yes | ddev restart
+    # Set the permissions
+    chmod 644 "web/sites/default/settings.php"
+    chmod 755 "web/sites/default"
 
-# End if statement if not DrupalCMS
+    ddev drush cr
+
+    # Export config
+    ddev drush cex -y
+
+    if [ "$git_choice" = "Yes" ]; then
+      git add .
+      git commit -m "Initial commit" -q
+    fi
+
+    ddev drush cr
+
+    yes | ddev restart
+
+  fi # End if statement about core issue
+
+# End if statement about DrupalCMS
 fi
