@@ -934,8 +934,27 @@ else
       # Check out this branch for the first time
       git checkout -b "${link_text}" --track "${project_name}-${issue_number}/${link_text}"
 
+      # Initialize an empty array
+      dep_array=()
+
+      # Get dependencies from the *.info.yml, add them to our array
+      while read -r value; do
+        dep_array+=("$value")
+      done < <(yq eval '.dependencies[]' "cas.info.yml" | cut -d: -f1)
+
       # CD back out of the directory
       cd ../../../../
+
+      # Install dependancies
+      for element in "${dep_array[@]}"; do
+        ddev composer require "drupal/$element"
+      done
+
+      # Enable the module/theme
+      ddev drush en "${project_name}" -y
+
+      # Clear the cache
+      ddev drush cr
 
     fi
 
