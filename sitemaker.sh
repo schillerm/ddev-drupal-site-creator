@@ -1,5 +1,8 @@
 #!/bin/bash
 
+# Uncomment to do clears, comment out to run with no clears, see all output.
+clear_toggle="on"
+
 function select_option {
 
   # little helpers for terminal print control and key input
@@ -67,29 +70,7 @@ function select_option {
   return $selected
 }
 
-red="\e[0;91m"
-green="\e[0;92m"
-blue="\e[0;94m"
-reset="\e[0m"
-
-clear
-echo -e "${blue}Creating new DDev Drupal site${reset}"
-echo -e " "
-echo "Do you want to install a DrupalCMS site?"
-echo
-drupal_cms_options=(
-  No
-  Yes
-)
-
-select_option "${drupal_cms_options[@]}"
-drupal_cms_options_choice=$?
-drupal_cms="${drupal_cms_options[$drupal_cms_options_choice]}"
-
-clear
-
-if [ "$drupal_cms" = "No" ]; then
-
+function get_basic_drupal_version {
   echo -e "${blue}Creating new DDev Drupal site${reset}"
   echo -e " "
   echo "Select a Drupal version"
@@ -105,9 +86,248 @@ if [ "$drupal_cms" = "No" ]; then
   d_choice=$?
   basic_drupal_version="${d_options[d_choice]}"
 
-  clear
+  if [[ "$clear_toggle" == "on" ]]; then
+    clear
+  fi
+}
 
-  case "${d_options[$d_choice]}" in
+function get_site_details() {
+  if [[ "$clear_toggle" == "on" ]]; then
+    clear
+  fi
+  # Sitename
+  # Loop until valid input is provided
+  echo -e "${blue}Creating new DDev Drupal site${reset}"
+  echo -e " "
+
+  while true; do
+    read -p 'Sitename [Dev] : ' initial_sitename
+    initial_sitename="${initial_sitename:-Dev}"
+
+    # Validate: first character must be a letter, rest can be alphanumeric or hyphen
+    if [[ "$initial_sitename" =~ ^[a-zA-Z][a-zA-Z0-9-]*$ ]]; then
+      break
+    else
+      echo "Invalid sitename. It must start with a letter and contain only letters, numbers, or hyphens."
+    fi
+  done
+
+  if [[ "$clear_toggle" == "on" ]]; then
+    clear
+  fi
+
+  if [[ -n "$issue_number" ]]; then
+    # Issue number exists offer the option to include this in the sitename
+
+    echo -e "${blue}Creating new DDev Drupal site${reset}"
+    echo -e " "
+    echo "Do you want to suffix the issue number in the sitename?"
+    echo
+    suffix_issue_number_options=(
+      Yes
+      No
+    )
+
+    select_option "${suffix_issue_number_options[@]}"
+    suffix_issue_number_options_choice=$?
+    suffix_issue_number_choice="${suffix_issue_number_options[$suffix_issue_number_options_choice]}"
+
+    if [[ "$clear_toggle" == "on" ]]; then
+      clear
+    fi
+
+  else
+    # No issue number so offer random number instead
+    if [[ "$clear_toggle" == "on" ]]; then
+      clear
+    fi
+    echo -e "${blue}Creating new DDev Drupal site${reset}"
+    echo -e " "
+    echo "Do you want to suffix the sitename with 6 random digits?"
+    echo
+    suffix_digits_options=(
+      Yes
+      No
+    )
+
+    select_option "${suffix_digits_options[@]}"
+    suffix_digits_options_choice=$?
+    suffix_digits_choice="${suffix_digits_options[$suffix_digits_options_choice]}"
+
+  fi
+
+  if [[ "$clear_toggle" == "on" ]]; then
+    clear
+  fi
+  echo -e "${blue}Creating new DDev Drupal site${reset}"
+  echo -e ""
+  echo "Do you want to add the drupal version to the site name?"
+  echo
+  add_drupal_version_to_sitename_options=(
+    Yes
+    No
+  )
+
+  select_option "${add_drupal_version_to_sitename_options[@]}"
+  add_drupal_version_to_sitename_options_choice=$?
+  add_drupal_version_to_choice="${add_drupal_version_to_sitename_options[$add_drupal_version_to_sitename_options_choice]}"
+
+  if [[ "$clear_toggle" == "on" ]]; then
+    clear
+  fi
+
+  ############# This section builds the sitename ###################
+
+  if [ "$suffix_digits_choice" = "Yes" ] || [ "$suffix_issue_number_choice" = "Yes" ]; then
+
+    if [ "$suffix_issue_number_choice" = "Yes" ]; then
+      # Suffix sitename with the issue number
+      if [ "$add_drupal_version_to_choice" = "Yes" ]; then
+        sitename="${initial_sitename}-${basic_drupal_version}-${issue_number}"
+      else
+        sitename="${initial_sitename}-${issue_number}"
+      fi
+    else
+      # else suffix sitename with a random number
+      site_number=$(printf "%06d" $((RANDOM % 1000000)))
+      if [ "$add_drupal_version_to_choice" = "Yes" ]; then
+        sitename="${initial_sitename}-${basic_drupal_version}-${site_number}"
+      else
+        sitename="${initial_sitename}-${site_number}"
+      fi
+
+    fi
+
+  else
+    # Build sitename with no suffix
+    sitename="${initial_sitename}"
+    if [ "$add_drupal_version_to_choice" = "Yes" ]; then
+      sitename="${initial_sitename}-${basic_drupal_version}"
+    fi
+  fi
+
+  # End of build sitename section
+
+  if [[ "$clear_toggle" == "on" ]]; then
+    clear
+  fi
+
+  echo -e "${blue}Creating new DDev Drupal site${reset}"
+  echo -e " "
+  echo -e "Sitename : ${green}$sitename${reset}"
+
+  default_site_title="${sitename//-/ }"
+
+  while true; do
+    #read -p "Site Title ["${default_site_title}"] : " site_title
+    read -p "Site Title [${default_site_title}]: " site_title
+
+    site_title=${site_title:-"$default_site_title"}
+
+    # Trim to first 100 characters
+    site_title="${site_title:0:100}"
+
+    # Sanitize: remove unsafe characters
+    sanitized_title=$(echo "$site_title" | sed 's/[^a-zA-Z0-9 ._-]//g')
+
+    # Check if sanitized version is equal to input and not empty
+    if [[ "$sanitized_title" == "$site_title" && -n "$site_title" ]]; then
+      break
+    else
+      echo "Invalid site title. Only letters, numbers, spaces, dashes, underscores, and dots are allowed. Max length: 100 characters."
+    fi
+  done
+
+  # Sanitize the site title
+  sanitize_site_title() {
+    local input="$1"
+
+    # Trim leading/trailing whitespace
+    input="$(echo "$input" | sed -e 's/^[[:space:]]*//' -e 's/[[:space:]]*$//')"
+
+    # Remove control characters (non-printable)
+    input="$(echo "$input" | tr -dC '[:print:]')"
+
+    # Replace dangerous shell characters with dashes or nothing
+    input="$(echo "$input" | sed 's/["'\''`\\$&<>|]/-/g')"
+
+    echo "$input"
+  }
+
+  sanitized_title=$(sanitize_site_title "$site_title")
+
+  # Optional: confirm valid title
+  echo "Using site title: '$site_title'"
+
+  if [[ "$clear_toggle" == "on" ]]; then
+    clear
+  fi
+
+  echo -e "${blue}Creating new DDev Drupal site${reset}"
+  echo -e " "
+  echo -e "Sitename : ${green}$sitename${reset}"
+  echo -e "Site Title : ${green}$site_title${reset}"
+
+  while true; do
+    read -p "Username [admin]: " username
+    username="${username:-admin}"
+
+    # Check: valid characters and length (3 to 60)
+    if [[ "$username" =~ ^[a-zA-Z0-9._-]{3,60}$ ]]; then
+      break
+    else
+      echo "Invalid username. Use 3–60 characters: letters, numbers, dot (.), dash (-), or underscore (_)."
+    fi
+  done
+
+  echo "Using username: $username"
+
+  if [[ "$clear_toggle" == "on" ]]; then
+    clear
+  fi
+  echo -e "${blue}Creating new DDev Drupal site${reset}"
+  echo -e " "
+  echo -e "Sitename : ${green}$sitename${reset}"
+  echo -e "Site Title : ${green}$site_title${reset}"
+  echo -e "Username : ${green}$username${reset}"
+
+  while true; do
+    read -p 'Email [someone@example.com]: ' email
+    email="${email:-someone@example.com}"
+    if [ -z "$email" ]; then
+      echo "Please enter an email address!"
+    else
+      break
+    fi
+  done
+
+  if [[ "$clear_toggle" == "on" ]]; then
+    clear
+  fi
+  echo -e "${blue}Creating new DDev Drupal site${reset}"
+  echo -e " "
+  echo -e "Sitename : ${green}$sitename${reset}"
+  echo -e "Site Title : ${green}$site_title${reset}"
+  echo -e "Username : ${green}$username${reset}"
+  echo -e "Email : ${green}$email${reset}"
+
+  while true; do
+    read -p 'Password [admin]: ' password
+    password="${password:-admin}"
+    if [ -z "$password" ]; then
+      echo "Please enter a password!"
+    else
+      break
+    fi
+  done
+
+}
+
+function get_drupal_version() {
+  if [[ "$clear_toggle" == "on" ]]; then
+    clear
+  fi
+  case "$1" in
   "11")
     echo -e "${blue}Creating new DDev Drupal site${reset}"
     echo -e " "
@@ -115,7 +335,6 @@ if [ "$drupal_cms" = "No" ]; then
     echo
     d11_options=(
       11.x-dev
-      11.1.7
       11.1.6
       11.1.5
       11.1.4
@@ -195,8 +414,13 @@ if [ "$drupal_cms" = "No" ]; then
 
   esac
 
-  clear
+  if [[ "$clear_toggle" == "on" ]]; then
+    clear
+  fi
 
+}
+
+function get_php_version {
   case "$drupal_version" in
   "11.x-dev" | "11.1.7" | "11.1.6" | "11.1.5" | "11.1.4" | "11.1.3" | "11.1.2" | "11.1.1" | "11.1.0")
     php_options=(
@@ -311,229 +535,26 @@ if [ "$drupal_cms" = "No" ]; then
   echo
   select_option "${php_options[@]}"
   php_choice=$?
-  phpversion="${php_options[$php_choice]}"
+  php_version="${php_options[$php_choice]}"
+}
 
-fi
+function get_drush_version() {
 
-if [ "$drupal_cms" = "Yes" ]; then
-
-  echo -e "${blue}Creating new DDev Drupal site${reset}"
-  echo -e " "
-  echo "Do you want to go through the site install steps in Drupal CMS site GUI, or automate it using this script?"
-  echo
-  dcms_auto_install_options=(
-    "Install using Drupal CMS"
-    "Use this script"
-  )
-
-  select_option "${dcms_auto_install_options[@]}"
-  dcms_auto_install_options_choice=$?
-  dcms_install="${dcms_auto_install_options[$dcms_auto_install_options_choice]}"
-
-  echo -e "$dcms_install"
-
-fi
-
-if [ "$dcms_install" = "Use this script" ] || [ "$drupal_cms" = "No" ]; then
-
-  clear
-
-  echo -e "${blue}Creating new DDev Drupal site${reset}"
-  echo -e " "
-
-  # Loop until valid input is provided
-  while true; do
-    read -p 'Sitename [Dev] : ' initial_sitename
-    initial_sitename="${initial_sitename:-Dev}"
-
-    # Validate: first character must be a letter, rest can be alphanumeric or hyphen
-    if [[ "$initial_sitename" =~ ^[a-zA-Z][a-zA-Z0-9-]*$ ]]; then
-      break
-    else
-      echo "Invalid sitename. It must start with a letter and contain only letters, numbers, or hyphens."
-    fi
-  done
-
-  clear
-  echo -e "${blue}Creating new DDev Drupal site${reset}"
-  echo -e " "
-  echo "Do you want to suffix the sitename with 6 random digits?"
-  echo
-  suffix_digits_options=(
-    Yes
-    No
-  )
-
-  select_option "${suffix_digits_options[@]}"
-  suffix_digits_options_choice=$?
-  suffix_digits_choice="${suffix_digits_options[$suffix_digits_options_choice]}"
-
-  if [ "$drupal_cms" = "Yes" ]; then
-    basic_drupal_version=11
+  if [[ -z "$drupal_version" && -n "$1" ]]; then
+    drupal_version="$1"
   fi
 
-  clear
-
-  echo -e "${blue}Creating new DDev Drupal site${reset}"
-  echo -e " "
-  echo "Do you want to add the drupal version to the site name?"
-  echo
-  add_drupal_version_to_sitename_options=(
-    Yes
-    No
-  )
-
-  select_option "${add_drupal_version_to_sitename_options[@]}"
-  add_drupal_version_to_sitename_options_choice=$?
-  add_drupal_version_to_choice="${add_drupal_version_to_sitename_options[$add_drupal_version_to_sitename_options_choice]}"
-
-  clear
-
-  site_number=$(printf "%06d" $((RANDOM % 1000000)))
-
-  if [ "$suffix_digits_choice" = "Yes" ]; then
-    if [ "$add_drupal_version_to_choice" = "Yes" ]; then
-      sitename="${initial_sitename}-${basic_drupal_version}-${site_number}"
-    else
-      sitename="${initial_sitename}-${site_number}"
-    fi
-
-  else
-    sitename="${initial_sitename}"
-    if [ "$add_drupal_version_to_choice" = "Yes" ]; then
-      sitename="${initial_sitename}-${basic_drupal_version}"
-    fi
-  fi
-
-  clear
-
-  echo -e "${blue}Creating new DDev Drupal site${reset}"
-  echo -e " "
-  echo -e "Sitename : ${green}$sitename${reset}"
-
-  default_site_title="${sitename//-/ }"
-
-  while true; do
-    read -p "Site Title ["${default_site_title}"] : " site_title
-    site_title=${site_title:-"$default_site_title"}
-
-    # Trim to first 100 characters
-    site_title="${site_title:0:100}"
-
-    # Sanitize: remove unsafe characters
-    sanitized_title=$(echo "$site_title" | sed 's/[^a-zA-Z0-9 ._-]//g')
-
-    # Check if sanitized version is equal to input and not empty
-    if [[ "$sanitized_title" == "$site_title" && -n "$site_title" ]]; then
-      break
-    else
-      echo "Invalid site title. Only letters, numbers, spaces, dashes, underscores, and dots are allowed. Max length: 100 characters."
-    fi
-  done
-
-  # Sanitize the site title
-  sanitize_site_title() {
-    local input="$1"
-
-    # Trim leading/trailing whitespace
-    input="$(echo "$input" | sed -e 's/^[[:space:]]*//' -e 's/[[:space:]]*$//')"
-
-    # Remove control characters (non-printable)
-    input="$(echo "$input" | tr -dC '[:print:]')"
-
-    # Replace dangerous shell characters with dashes or nothing
-    input="$(echo "$input" | sed 's/["'\''`\\$&<>|]/-/g')"
-
-    echo "$input"
-  }
-
-  sanitized_title=$(sanitize_site_title "$site_title")
-
-  # Optional: confirm valid title
-  echo "Using site title: '$site_title'"
-
-  clear
-
-  echo -e "${blue}Creating new DDev Drupal site${reset}"
-  echo -e " "
-  echo -e "Sitename : ${green}$sitename${reset}"
-  echo -e "Site Title : ${green}$site_title${reset}"
-
-  while true; do
-    read -p "Username [admin]: " username
-    username="${username:-admin}"
-
-    # Check: valid characters and length (3 to 60)
-    if [[ "$username" =~ ^[a-zA-Z0-9._-]{3,60}$ ]]; then
-      break
-    else
-      echo "Invalid username. Use 3–60 characters: letters, numbers, dot (.), dash (-), or underscore (_)."
-    fi
-  done
-
-  echo "Using username: $username"
-
-  clear
-  echo -e "${blue}Creating new DDev Drupal site${reset}"
-  echo -e " "
-  echo -e "Sitename : ${green}$sitename${reset}"
-  echo -e "Site Title : ${green}$site_title${reset}"
-  echo -e "Username : ${green}$username${reset}"
-
-  while true; do
-    read -p 'Email [someone@example.com]: ' email
-    email="${email:-someone@example.com}"
-    if [ -z "$email" ]; then
-      echo "Please enter an email address!"
-    else
-      break
-    fi
-  done
-
-  clear
-  echo -e "${blue}Creating new DDev Drupal site${reset}"
-  echo -e " "
-  echo -e "Sitename : ${green}$sitename${reset}"
-  echo -e "Site Title : ${green}$site_title${reset}"
-  echo -e "Username : ${green}$username${reset}"
-  echo -e "Email : ${green}$email${reset}"
-
-  while true; do
-    read -p 'Password [admin]: ' password
-    password="${password:-admin}"
-    if [ -z "$password" ]; then
-      echo "Please enter a password!"
-    else
-      break
-    fi
-  done
-
-fi
-
-clear
-
-echo -e "${blue}Creating new DDev Drupal site${reset}"
-echo -e " "
-echo -e "Sitename : ${green}$sitename${reset}"
-echo -e "Site Title : ${green}$site_title${reset}"
-echo -e "Username : ${green}$username${reset}"
-echo -e "Email : ${green}$email${reset}"
-echo -e "Password : ${green}$password${reset}"
-echo -e "Drupal CMS : ${green}$drupal_cms${reset}"
-if [ "$drupal_cms" = "No" ]; then
-  echo -e "Drupal Basic version : ${green}$basic_drupal_version${reset}"
-  echo -e "Drupal version : ${green}$drupal_version${reset}"
-  echo -e "PHP version : ${green}$phpversion${reset}"
-fi
-clear
-
-if [ "$drupal_cms" = "No" ]; then
   case "$drupal_version" in
   "11.1.6" | "11.1.5" | "11.1.4" | "11.1.3" | "11.1.2" | "11.1.1" | "11.1.0")
     drush_version=13
     ;;
 
   "11.0.0" | "11.0.1" | "11.0.2" | "11.0.3" | "11.0.4" | "11.0.5" | "11.0.6" | "11.0.7" | "11.0.8" | "11.0.9" | "11.0.10" | "11.0.11" | "11.0.12" | "11.0.13")
+    if [[ "$clear_toggle" == "on" ]]; then
+      clear
+    fi
+    echo -e "${blue}Creating new DDev Drupal site${reset}"
+    echo -e " "
     echo "Select a Drush version"
     drush_versions=(
       13
@@ -544,7 +565,7 @@ if [ "$drupal_cms" = "No" ]; then
     drush_version="${drush_versions[$drush_choice]}"
     ;;
 
-  "10.2.0" | "10.3.0" | "10.4.0")
+  "10.2.0" | "10.3.0" | "10.4.0" | "10")
     drush_version=12
     ;;
 
@@ -552,7 +573,7 @@ if [ "$drupal_cms" = "No" ]; then
     drush_version=11
     ;;
 
-  "9.4.0" | "9.5.0")
+  "9.4.0" | "9.5.0" | "9")
     drush_version=10
     ;;
 
@@ -560,7 +581,7 @@ if [ "$drupal_cms" = "No" ]; then
     drush_version=9
     ;;
 
-  "8.4.0" | "8.5.0" | "8.6.0" | "8.7.0" | "8.8.0" | "8.9.0")
+  "8.4.0" | "8.5.0" | "8.6.0" | "8.7.0" | "8.8.0" | "8.9.0" | "8")
     drush_version=9
     ;;
 
@@ -573,46 +594,62 @@ if [ "$drupal_cms" = "No" ]; then
     drush_versions=()
     ;;
   esac
+}
 
-fi
+function make_site_folder() {
 
-clear
+  mkdir "$1"
+  cd "$1"
 
-echo -e "${blue}Creating new DDev Drupal site${reset}"
-echo -e " "
-echo -e "Sitename : ${green}$sitename${reset}"
-echo -e "Site Title : ${green}$site_title${reset}"
-echo -e "Username : ${green}$username${reset}"
-echo -e "Email : ${green}$email${reset}"
-echo -e "Password : ${green}$password${reset}"
-echo -e "Drupal CMS : ${green}$drupal_cms${reset}"
-if [ "$drupal_cms" = "No" ]; then
-  echo -e "Drupal Basic version : ${green}$basic_drupal_version${reset}"
-  echo -e "Drupal version : ${green}$drupal_version${reset}"
-  echo -e "PHP version : ${green}$phpversion${reset}"
-  echo -e "Drush version : ${green}$drush_version${reset}"
-fi
+}
 
-clear
-
-if [ "$drupal_cms" = "No" ]; then
-
+function install_drush() {
   if [ "$basic_drupal_version" = "11" ]; then
-    echo -e "${blue}Creating new DDev Drupal site${reset}"
-    echo -e " "
-    echo -e "Do you want development modules installed?\n\nIncluding composer-patches, core-dev, devel, examples, admin_toolbar, webprofiler"
-    echo
-    dev_modules_options=(
-      Yes
-      No
-    )
-
-    select_option "${dev_modules_options[@]}"
-    dev_modules_options_choice=$?
-    dev_modules="${dev_modules_options[$dev_modules_options_choice]}"
+    ddev composer require drush/drush
+  else
+    local version="$1"
+    ddev composer require "drush/drush:^${version}"
   fi
+}
 
-  clear
+function get_dev_modules {
+  if [[ "$clear_toggle" == "on" ]]; then
+    clear
+  fi
+  echo -e "${blue}Creating new DDev Drupal site${reset}"
+  echo -e " "
+  echo -e "Do you want development modules installed?\n\nIncluding composer-patches, core-dev, devel, examples, admin_toolbar, webprofiler"
+  echo
+  dev_modules_options=(
+    Yes
+    No
+  )
+
+  select_option "${dev_modules_options[@]}"
+  dev_modules_options_choice=$?
+  dev_modules="${dev_modules_options[$dev_modules_options_choice]}"
+}
+
+function install_dev_modules {
+  # Install and enable useful dev modules
+  ddev composer require cweagans/composer-patches
+  ddev composer require drupal/core-dev --dev --update-with-all-dependencies
+  ddev composer require drupal/devel --dev
+  ddev composer require drupal/admin_toolbar --dev
+  ddev composer require drupal/examples --dev
+  ddev composer require drupal/webprofiler --dev
+
+  ddev drush en admin_toolbar
+  ddev drush en devel
+  ddev drush en devel_generate
+  ddev drush en examples
+  ddev drush en webprofiler -y
+}
+
+function get_dev_things {
+  if [[ "$clear_toggle" == "on" ]]; then
+    clear
+  fi
 
   echo -e "${blue}Creating new DDev Drupal site${reset}"
   echo -e " "
@@ -626,8 +663,26 @@ if [ "$drupal_cms" = "No" ]; then
   select_option "${dev_things_options[@]}"
   dev_things_options_choice=$?
   dev_things="${dev_things_options[$dev_things_options_choice]}"
+}
 
-  clear
+function set_dev_things {
+  # Allow plugin sources
+  ddev composer config allow-plugins.tbachert/spi true
+  ddev composer config allow-plugins.cweagans/composer-patches true
+
+  # Configure development settings
+  ddev drush -y config-set system.performance js.preprocess 0
+  ddev drush -y config-set system.performance css.preprocess 0
+  ddev drush config:set system.theme twig_debug TRUE --yes
+
+  # Enable twig development mode and do not cache markup
+  ddev drush php:eval "\Drupal::keyValue('development_settings')->setMultiple(['disable_rendered_output_cache_bins' => TRUE, 'twig_debug' => TRUE, 'twig_cache_disable' => TRUE]);"
+}
+
+function get_custom_module {
+  if [[ "$clear_toggle" == "on" ]]; then
+    clear
+  fi
 
   echo -e "${blue}Creating new DDev Drupal site${reset}"
   echo -e " "
@@ -641,9 +696,41 @@ if [ "$drupal_cms" = "No" ]; then
   select_option "${custom_module_options[@]}"
   custom_module_options_choice=$?
   custom_module="${custom_module_options[$custom_module_options_choice]}"
+}
 
-  clear
+function create_custom_module {
+  module_name="${sitename}-module"
+  module_name="${module_name,,}"
+  module_name="${module_name//-/_}"
 
+  # Run the drush generate command to create the module
+  ddev drush generate -q module \
+    --answer="Test module" \
+    --answer="$module_name" \
+    --answer="My test module" \
+    --answer="Custom" \
+    --answer="" \
+    --answer="Yes" \
+    --answer="Yes" \
+    --answer="No"
+
+  # Create module folders
+  cd "web/modules/custom/$module_name"
+  mkdir js
+  mkdir css
+  mkdir config
+  mkdir config/install
+  mkdir src
+  mkdir src/Controller
+  cd ../../../../
+
+  ddev drush en "$module_name"
+}
+
+function get_custom_theme {
+  if [[ "$clear_toggle" == "on" ]]; then
+    clear
+  fi
   echo -e "${blue}Creating new DDev Drupal site${reset}"
   echo -e " "
   echo "Do you want a custom theme set up?"
@@ -657,96 +744,257 @@ if [ "$drupal_cms" = "No" ]; then
   custom_theme_options_choice=$?
   custom_theme="${custom_theme_options[$custom_theme_options_choice]}"
 
-  clear
+}
 
+function create_custom_theme {
+  theme_name="${sitename}-theme"
+  theme_name="${theme_name,,}"
+  theme_name="${theme_name//-/_}"
+
+  ddev drush generate -q theme \
+    --answer="Test Theme" \
+    --answer="$theme_name" \
+    --answer="Olivero" \
+    --answer="My test theme" \
+    --answer="Custom" \
+    --answer="No" \
+    --answer="No"
+
+  rm "web/themes/custom/$theme_name/css/base/elements.css"
+  rm "web/themes/custom/$theme_name/css/layout/layout.css"
+  rm "web/themes/custom/$theme_name/css/component/block.css"
+  rm "web/themes/custom/$theme_name/css/component/tabs.css"
+  rm "web/themes/custom/$theme_name/css/component/breadcrumb.css"
+  rm "web/themes/custom/$theme_name/css/component/field.css"
+  rm "web/themes/custom/$theme_name/css/component/header.css"
+  rm "web/themes/custom/$theme_name/css/component/form.css"
+  rm "web/themes/custom/$theme_name/css/component/buttons.css"
+  rm "web/themes/custom/$theme_name/css/component/table.css"
+  rm "web/themes/custom/$theme_name/css/component/messages.css"
+  rm "web/themes/custom/$theme_name/css/component/sidebar.css"
+  rm "web/themes/custom/$theme_name/css/component/node.css"
+  rm "web/themes/custom/$theme_name/css/component/menu.css"
+  rm "web/themes/custom/$theme_name/css/theme/print.css"
+
+  # Create theme folders
+  mkdir "web/themes/custom/$theme_name/config"
+  mkdir "web/themes/custom/$theme_name/config/install"
+
+  # Copy theme regions over
+  SOURCE_FILE=web/core/themes/olivero/olivero.info.yml
+  TARGET_FILE=web/themes/custom/$theme_name/$theme_name.info.yml
+  yq eval ".regions = load(\"$SOURCE_FILE\").regions" "$TARGET_FILE" -i
+
+  # Enable the theme and set as default
+  ddev drush theme:enable $theme_name
+  ddev drush config:set $theme_name.settings logo.use_default 0 -y
+  ddev drush config:set system.theme default $theme_name -y
+}
+
+function get_git {
+  if [[ "$clear_toggle" == "on" ]]; then
+    clear
+  fi
   echo -e "${blue}Creating new DDev Drupal site${reset}"
   echo -e " "
-  echo -e "\nDo you want to work on an issue?\n
-This will:
-
-  • Clone the project
-  • Add and fetch the issue fork's repository
-  • Check out the issue branch
-
-If this is a core issue, a site will be installed using the justafish/ddev-drupal-core-dev add-on.
-
-This means the sitename, site title, user, and password will NOT be configurable.\n"
-
+  echo "Do you want to initalize a git repo?"
   echo
-  issue_options=(
+  git_options=(
     Yes
     No
   )
+  select_option "${git_options[@]}"
+  git_options_choice=$?
+  git_choice="${git_options[$git_options_choice]}"
 
-  select_option "${issue_options[@]}"
-  issue_options_choice=$?
-  issue_choice="${issue_options[$issue_options_choice]}"
-
-  clear
-
-  # Ask for issue url
-  if [ "$issue_choice" = "Yes" ]; then
-    while true; do
-      echo -e "${blue}Creating new DDev Drupal site${reset}"
-      echo -e " "
-      read -p 'Issue URL [] : ' issue_url
-      # Validate against expected Drupal.org issue URL format
-      if [[ "$issue_url" =~ ^https:\/\/www\.drupal\.org\/project\/([a-zA-Z0-9_\-]+)\/issues\/([0-9]{1,8})$ ]]; then
-        # Extract using BASH_REMATCH from the regex
-        project_name="${BASH_REMATCH[1]}"
-        issue_number="${BASH_REMATCH[2]}"
-        break
-      else
-        echo "Invalid input. Issue URL must match:"
-        echo "https://www.drupal.org/project/[project-name]/issues/[issue-number]"
-      fi
-    done
+  if [ "$git_choice" = "Yes" ]; then
+    # Initalize git repo
+    git init
+    git branch -M main
+    # Copy .gitignore over
+    cp ../Extras/.gitignore .gitignore
   fi
 
-  clear
+  if [[ "$clear_toggle" == "on" ]]; then
+    clear
+  fi
+}
 
+function git_add_and_commit {
+  if [ "$git_choice" = "Yes" ]; then
+    git add .
+    git commit -m "Initial commit" -q
+  fi
+}
+
+function make_folders_copy_files {
+  # Create the modules custom directory
+  mkdir -p web/modules/custom
+
+  # Create the modules contrib directory
+  mkdir -p web/modules/contrib
+
+  # Create the themes custom directory
+  mkdir -p web/themes/custom
+
+  # Create the themes contrib directory
+  mkdir -p web/themes/contrib
+
+  # Create the config directory
+  mkdir -p config
+
+  # Create the config/default directory
+  mkdir -p config/default
+
+  # Create the config/default/sync directory
+  mkdir -p config/default/sync
+
+  # Create the private directory
+  mkdir -p private
+
+  # Create the .vscode directory
+  mkdir -p .vscode
+
+  # copy vscode file over
+  cp ../Extras/launch.json .vscode/launch.json
+
+  # Copy phpstan.neon over
+  cp ../Extras/phpstan.neon phpstan.neon
+}
+
+function change_settings {
+  echo "\$settings['config_sync_directory'] = '../config/default/sync';" >>"web/sites/default/settings.php"
+  echo "\$settings['file_private_path'] = '../private';" >>"web/sites/default/settings.php"
+  echo "\$settings['skip_permissions_hardening'] = FALSE;" >>"web/sites/default/settings.php"
+}
+
+function set_permissions {
+  # Set the permissions
+  chmod 644 "web/sites/default/settings.php"
+  chmod 755 "web/sites/default"
+}
+
+function enable_phpmyadmin {
+  # Enable phpmyadmin in DDev
+  yes | ddev phpmyadmin
+}
+
+function export_config {
+  # Export config
+  ddev drush cex -y
+}
+
+function get_dcms_install {
+  if [[ "$clear_toggle" == "on" ]]; then
+    clear
+  fi
   echo -e "${blue}Creating new DDev Drupal site${reset}"
   echo -e " "
-  echo -e "Sitename : ${green}$sitename${reset}"
-  echo -e "Site Title : ${green}$site_title${reset}"
-  echo -e "Username : ${green}$username${reset}"
-  echo -e "Email : ${green}$email${reset}"
-  echo -e "Password : ${green}$password${reset}"
-  echo -e "Drupal CMS : ${green}$drupal_cms${reset}"
-  if [ "$drupal_cms" = "No" ]; then
-    echo -e "Drupal Basic version : ${green}$basic_drupal_version${reset}"
-    echo -e "Drupal version : ${green}$drupal_version${reset}"
-    echo -e "PHP version : ${green}$phpversion${reset}"
-    echo -e "Drush version : ${green}$drush_version${reset}"
+  echo "Do you want to go through the site install steps in Drupal CMS site GUI, or automate it using this script?"
+  echo
+  dcms_auto_install_options=(
+    "Install using Drupal CMS"
+    "Use this script"
+  )
+
+  select_option "${dcms_auto_install_options[@]}"
+  dcms_auto_install_options_choice=$?
+  dcms_install="${dcms_auto_install_options[$dcms_auto_install_options_choice]}"
+}
+
+function get_project_stable_version() {
+
+  MODULE="$1" # Replace with any module machine name
+
+  # Use a Python script inline to extract text from the page
+  stable_version=$(
+    python3 <<EOF
+import requests
+from bs4 import BeautifulSoup
+
+# Issue queue URL to scrape
+project_url="$project_url"
+issue_response = requests.get(project_url)
+issue_soup = BeautifulSoup(issue_response.text, "html.parser")
+
+# Find the first element with class "stability-stable"
+sv = issue_soup.find('div', class_='stability-stable')
+
+# Within that div, find the version span
+vs = sv.find('span', class_='views-field-field-release-version')
+
+# Extract the version from the <a> tag
+version = vs.find('a').text.strip()
+
+if version:
+    print(version)
+EOF
+  )
+}
+
+function get_project_latest_drupal_version {
+  # From # project page get the drupal version
+  # Use a Python script inline to extract text from the page
+
+  latest_version=$(
+    python3 <<EOF
+import requests
+import re
+from bs4 import BeautifulSoup
+
+# Issue queue URL to scrape
+project_url="$project_url"
+issue_response = requests.get(project_url)
+issue_soup = BeautifulSoup(issue_response.text, "html.parser")
+
+# Find the first element with class "stability-stable"
+sv = issue_soup.find('div', class_='stability-stable')
+
+# Find the <small> tag
+small_tag = sv.find('small', string=re.compile(r'^Works with Drupal:'))
+
+# Extract text
+text = small_tag.get_text()
+
+# Extract version numbers using regex and convert to integers
+versions = list(map(int, re.findall(r'\^(\d+)', text)))
+
+# Get the latest version
+latest_version = max(versions) if versions else None
+
+if latest_version:
+    print(latest_version)
+EOF
+  )
+  echo "$latest_version"
+}
+
+function get_issue_url {
+
+  if [[ "$clear_toggle" == "on" ]]; then
+    clear
   fi
-  if [ "$basic_drupal_version" = "11" ]; then
-    echo -e "Dev modules : ${green}$dev_things${reset}"
-  fi
-  echo -e "Dev settings : ${green}$dev_things${reset}"
-  echo -e "Custom Module : ${green}$custom_module${reset}"
-  echo -e "Custom Theme : ${green}$custom_theme${reset}"
-  if [ "$issue_choice" = "Yes" ]; then
-    echo -e "Issue Number : ${green}$issue_number${reset}"
-    echo -e "Issue Project : ${green}$project_name${reset}"
-  fi
-  echo -e "You may need to enter your password for sudo or allow escalation. So don't walk away just yet."
-fi
 
-# Make the directory and cd into it
-if [ "$drupal_cms" = "Yes" ]; then
-  sitename="dcms"
-  mkdir $sitename
-  cd $sitename
-fi
+  # Ask for issue url
+  while true; do
+    echo -e "${blue}Creating new DDev Drupal site${reset}"
+    echo -e " "
+    read -p 'Issue URL [] : ' issue_url
+    # Validate against expected Drupal.org issue URL format
+    if [[ "$issue_url" =~ ^https:\/\/www\.drupal\.org\/project\/([a-zA-Z0-9_\-]+)\/issues\/([0-9]{1,8})$ ]]; then
+      # Extract using BASH_REMATCH from the regex
+      project_name="${BASH_REMATCH[1]}"
+      issue_number="${BASH_REMATCH[2]}"
+      break
+    else
+      echo "Invalid input. Issue URL must match:"
+      echo "https://www.drupal.org/project/[project-name]/issues/[issue-number]"
+    fi
+  done
 
-if [ "$drupal_cms" = "No" ]; then
-
-  # Issue commands
-  if [ "$issue_choice" = "Yes" ]; then
-
-    # Use a Python script inline to extract link text from the page
-    link_text=$(
-      python3 <<EOF
+  # Use a Python script inline to extract link text from the page
+  link_text=$(
+    python3 <<EOF
 import requests
 from bs4 import BeautifulSoup
 
@@ -760,12 +1008,12 @@ link = issue_soup.find('a', attrs={'title': 'View branch in GitLab'})
 if link:
     print(link.text.strip())
 EOF
-    )
+  )
 
-    # Work out if Module or theme here..
-    # Use a Python script inline to extract name from the page
-    MT_project_type_raw=$(
-      python3 <<EOF
+  # Work out if Module or theme here..
+  # Use a Python script inline to extract name from the page
+  MT_project_type_raw=$(
+    python3 <<EOF
 import requests
 from bs4 import BeautifulSoup
 
@@ -783,86 +1031,173 @@ if nav:
     if first_link:
         print(first_link.text.strip())  # Output: Modules
 EOF
-    )
+  )
 
-    # Set the project type ..
-    case "$MT_project_type_raw" in
-    "Modules")
-      MT_project_type="modules"
-      ;;
-    "Themes")
-      MT_project_type="themes"
-      ;;
-    "Drupal core")
-      MT_project_type="core"
-      ;;
-    *)
-      echo "Unknown project type: $MT_project_type_raw"
-      ;;
-    esac
+  # Set project URL here
+  # https://www.drupal.org/project/cas/issues/3275551
+  project_url="https://www.drupal.org/project/${project_name}"
 
-  # End of issue project section
-  fi
+  # Set the project type ..
+  case "$MT_project_type_raw" in
+  "Modules")
+    MT_project_type="modules"
+    ;;
+  "Themes")
+    MT_project_type="themes"
+    ;;
+  "Drupal core")
+    MT_project_type="core"
+    ;;
+  *)
+    echo "Unknown project type: $MT_project_type_raw"
+    ;;
+  esac
+}
 
+#############################################################
+
+red="\e[0;91m"
+green="\e[0;92m"
+blue="\e[0;94m"
+reset="\e[0m"
+
+#############################################################
+# Check for installed software first..
+
+# ANSI Escape Codes for retro green
+GREEN='\033[0;32m'
+BOLD='\033[1m'
+NC='\033[0m'
+
+# Clear screen and set up the retro atmosphere
+if [[ "$clear_toggle" == "on" ]]; then
   clear
+fi
+echo -e "${GREEN}${BOLD}"
+figlet -f small "DDev Drupal Site creator"
+echo -e "${NC}"
 
-  # Not sure if this bit makes sense..
-  if [ "$issue_choice" = "No" ] || [ "$MT_project_type" != "core" ]; then
-    echo -e "${blue}Creating new DDev Drupal site${reset}"
-    echo -e " "
-    echo "Do you want to initalize a git repo?"
-    echo
-    git_options=(
-      Yes
-      No
-    )
-    select_option "${git_options[@]}"
-    git_options_choice=$?
-    git_choice="${git_options[$git_options_choice]}"
-  fi
+# Progress bar
+for i in {1..100}; do
+  echo -ne "${GREEN}▓"
+  sleep 0.01
+done
+echo -e "${NC}\n"
 
+##############################################################
+
+if [[ "$clear_toggle" == "on" ]]; then
   clear
+fi
+echo -e "${blue}Creating new DDev Drupal site${reset}"
+echo -e " "
+echo "What type of install is this?"
+echo
+drupal_install_options=(
+  'Drupal site'
+  'Drupal CMS site'
+  'Drupal site based on an issue'
+)
 
-  # Here we check if we need to make a new site directory
-  if [ "$issue_choice" = "Yes" ] && [ "$MT_project_type" = "core" ]; then
+select_option "${drupal_install_options[@]}"
+drupal_install_options_choice=$?
+drupal_install="${drupal_install_options[$drupal_install_options_choice]}"
 
-    nothing="nothing"
-  else
-    mkdir "$sitename"
-    cd "$sitename"
-  fi
+if [[ "$clear_toggle" == "on" ]]; then
+  clear
+fi
+
+#########################################################
+
+if [ "$drupal_install" = "Drupal site" ]; then
+  get_basic_drupal_version
+  get_site_details
+  get_drupal_version "$basic_drupal_version"
+  get_php_version
+  get_drush_version ""
+  make_site_folder "$sitename"
 
   project_type="drupal${basic_drupal_version}"
-else
-  project_type="drupal11"
-# End DrupalCMS = No line 737
-fi
-
-if [ "$MT_project_type" != "core" ]; then
-  recommended_project="recommended-project:^${basic_drupal_version}"
   ddev config --project-type="$project_type" --docroot=web
+
+  ddev composer create-project "drupal/recommended-project:^${drupal_version}"
+
   ddev start
+  install_drush "$drush_version"
+  ddev drush site:install --account-name=$username --account-pass=$password -y --site-name=$sitename
+  ddev drush config:set system.site name "$sanitized_title" --yes
+
+  make_folders_copy_files
+
+  get_dev_modules
+  get_dev_things
+
+  if [ "$dev_things" = "Yes" ]; then
+    set_dev_things
+  fi
+
+  if [ "${dev_modules}" = "Yes" ]; then
+    install_dev_modules
+  fi
+
+  get_custom_module
+  if [ "${custom_module}" = "Yes" ]; then
+    create_custom_module
+  fi
+
+  get_custom_theme
+  if [ "${custom_theme}" = "Yes" ]; then
+    create_custom_theme
+  fi
+
+  get_git
+
+  change_settings
+  set_permissions
+  export_config
+
+  ddev drush cr
+
+  enable_phpmyadmin
+  yes | ddev restart
+  git_add_and_commit
+
+  echo -e "${GREEN}${BOLD}"
+  figlet -f small "Finished!"
+  echo -e "${NC}"
 fi
 
-# DrupalCMS install starts here ##############################
-if [ "$drupal_cms" = "Yes" ]; then
+#########################################################
 
-  ddev composer create-project drupal/cms
-
-  # Use site info we collected if appropriate
+if [ "$drupal_install" = "Drupal CMS site" ]; then
+  get_dcms_install
   if [ "$dcms_install" = "Use this script" ]; then
+    get_site_details
+    make_site_folder "$sitename"
+    ddev config --project-type=drupal11 --docroot=web
+    ddev start
+    ddev composer create-project drupal/cms
     ddev drush site:install --account-name=$username --account-pass=$password -y --site-name=$sitename
     ddev drush config:set system.site name "$sanitized_title" --yes
   fi
+  if [ "$dcms_install" = "Install using Drupal CMS" ]; then
+    make_site_folder "drupal"
+    ddev config --project-type=drupal11 --docroot=web
+    ddev start
+    ddev composer create-project drupal/cms
+  fi
+fi
 
-# End DrupalCMS install bit ###################
-else
+#########################################################
 
-  if [ "$issue_choice" = "Yes" ] && [ "$MT_project_type" = "core" ]; then
-    # install using drupal issue fork
+if [ "$drupal_install" = "Drupal site based on an issue" ]; then
+  get_issue_url
+  if [ "$MT_project_type" = "core" ]; then
+    # Install using justafish/ddev-drupal-core-dev and issue fork
+
     # Setting up repository for the first time
-    git clone https://git.drupalcode.org/project/drupal.git "$sitename"
-    cd "$sitename"
+    git clone https://git.drupalcode.org/project/drupal.git "$project_name"
+    cd "$project_name"
 
     # Config ddev
     ddev config --omit-containers=db --disable-settings-management
@@ -885,280 +1220,115 @@ else
 
     # Check out the branch
     git checkout -b "${link_text}" --track "${project_name}-${issue_number}/${link_text}"
-  else
 
-    # Not Drupal core issue site, so install normally
+    echo -e "${GREEN}${BOLD}"
+    figlet -f small "Finished!"
+    echo -e "${NC}"
+
+  fi
+  if [ "$MT_project_type" = "modules" ]; then
+    get_project_stable_version
+
+    basic_drupal_version=$(get_project_latest_drupal_version)
+
+    get_site_details "$basic_drupal_version"
+    make_site_folder "$sitename"
+
+    project_type="drupal${basic_drupal_version}"
+    ddev config --project-type="$project_type" --docroot=web
+    ddev start
+
+    recommended_project="recommended-project:^${basic_drupal_version}"
     ddev composer create-project "drupal/${recommended_project}"
 
-    if [ "$basic_drupal_version" = "11" ]; then
-      ddev composer require drush/drush
-    else
-      ddev composer require "drush/drush:^${drush_version}"
-    fi
+    get_drush_version "$basic_drupal_version"
+    install_drush "$drush_version"
 
-    # Site install using drush
-    ddev drush site:install \
-      --account-name="$username" \
-      --account-pass="$password" \
-      -y \
-      --site-name="$sitename"
-
-    if [ "$issue_choice" = "Yes" ] && [ "$MT_project_type" != "core" ]; then
-
-      # Create the modules custom directory
-      mkdir -p web/modules/custom
-
-      # Create the modules contrib directory
-      mkdir -p web/modules/contrib
-
-      # Create the themes custom directory
-      mkdir -p web/themes/custom
-
-      # Create the themes contrib directory
-      mkdir -p web/themes/contrib
-
-      # Go into contrib folder and clone issue module or theme
-      cd "web/${MT_project_type}/contrib/"
-
-      # Setting up repository for the first time
-      git_clone_url="https://git.drupalcode.org/project/${project_name}.git"
-
-      # Setting up repository for the first time
-      git clone ${git_clone_url}
-      cd ${project_name}
-
-      # Add & fetch this issue fork’s repository
-      git remote add "${project_name}-${issue_number}" "git@git.drupal.org:issue/${project_name}-${issue_number}.git"
-      git fetch "${project_name}-${issue_number}"
-
-      # Check out this branch for the first time
-      git checkout -b "${link_text}" --track "${project_name}-${issue_number}/${link_text}"
-
-      # Initialize an empty array
-      dep_array=()
-
-      # Get dependencies from the *.info.yml, add them to our array
-      while read -r value; do
-        dep_array+=("$value")
-      done < <(yq eval '.dependencies[]' "cas.info.yml" | cut -d: -f1)
-
-      # CD back out of the directory
-      cd ../../../../
-
-      # Install dependancies
-      for element in "${dep_array[@]}"; do
-        ddev composer require "drupal/$element"
-      done
-
-      # Enable the module/theme
-      ddev drush en "${project_name}" -y
-
-      # Clear the cache
-      ddev drush cr
-
-    fi
-
-  fi # End using drupal issue fork
-
-  if [ "$issue_choice" = "Yes" ] && [ "$MT_project_type" = "core" ]; then
-
-    # Create the modules custom directory
-    mkdir -p modules/custom
-
-    # Create the modules contrib directory
-    mkdir -p modules/contrib
-
-    # Create the themes custom directory
-    mkdir -p themes/custom
-
-    # Create the themes contrib directory
-    mkdir -p themes/contrib
-
-  else
-
-    # Create the modules custom directory
-    mkdir -p web/modules/custom
-
-    # Create the modules contrib directory
-    mkdir -p web/modules/contrib
-
-    # Create the themes custom directory
-    mkdir -p web/themes/custom
-
-    # Create the themes contrib directory
-    mkdir -p web/themes/contrib
-
-    # Create the config directory
-    mkdir -p config
-
-    # Create the config/default directory
-    mkdir -p config/default
-
-    # Create the config/default/sync directory
-    mkdir -p config/default/sync
-
-    # Create the private directory
-    mkdir -p private
-
-    # Create the .vscode directory
-    mkdir -p .vscode
-
-    # copy vscode file over
-    cp ../Extras/launch.json .vscode/launch.json
-
-    if [ "$dev_things" = "Yes" ]; then
-      # Allow plugin sources
-      ddev composer config allow-plugins.tbachert/spi true
-      ddev composer config allow-plugins.cweagans/composer-patches true
-
-      # Configure development settings
-      ddev drush -y config-set system.performance js.preprocess 0
-      ddev drush -y config-set system.performance css.preprocess 0
-      ddev drush config:set system.theme twig_debug TRUE --yes
-
-      # Enable twig development mode and do not cache markup
-      ddev drush php:eval "\Drupal::keyValue('development_settings')->setMultiple(['disable_rendered_output_cache_bins' => TRUE, 'twig_debug' => TRUE, 'twig_cache_disable' => TRUE]);"
-    fi
-    ddev composer config extra.drupal-scaffold.gitignore true
-
-    if [ "$dev_modules" = "Yes" ]; then
-
-      # Install and enable useful dev modules
-      ddev composer require cweagans/composer-patches
-      ddev composer require drupal/core-dev --dev --update-with-all-dependencies
-      ddev composer require drupal/devel --dev
-      ddev composer require drupal/admin_toolbar --dev
-      ddev composer require drupal/examples --dev
-      ddev composer require drupal/webprofiler --dev
-
-      ddev drush en admin_toolbar
-      ddev drush en devel
-      ddev drush en devel_generate
-      ddev drush en examples
-      ddev drush en webprofiler -y
-    fi
-
-    if [ "$custom_module" = "Yes" ]; then
-
-      module_name="${sitename}-module"
-      module_name="${module_name,,}"
-      module_name="${module_name//-/_}"
-
-      # Run the drush generate command to create the module
-      ddev drush generate -q module \
-        --answer="Test module" \
-        --answer="$module_name" \
-        --answer="My test module" \
-        --answer="Custom" \
-        --answer="" \
-        --answer="Yes" \
-        --answer="Yes" \
-        --answer="No"
-
-      # Create module folders
-      cd "web/modules/custom/$module_name"
-      mkdir js
-      mkdir css
-      mkdir config
-      mkdir config/install
-      mkdir src
-      mkdir src/Controller
-      cd ../../../../
-
-      ddev drush en "$module_name"
-
-    fi
-
-    if [ "$custom_theme" = "Yes" ]; then
-
-      theme_name="${sitename}-theme"
-      theme_name="${theme_name,,}"
-      theme_name="${theme_name//-/_}"
-
-      ddev drush generate -q theme \
-        --answer="Test Theme" \
-        --answer="$theme_name" \
-        --answer="Olivero" \
-        --answer="My test theme" \
-        --answer="Custom" \
-        --answer="No" \
-        --answer="No"
-
-      rm "web/themes/custom/$theme_name/css/base/elements.css"
-      rm "web/themes/custom/$theme_name/css/layout/layout.css"
-      rm "web/themes/custom/$theme_name/css/component/block.css"
-      rm "web/themes/custom/$theme_name/css/component/tabs.css"
-      rm "web/themes/custom/$theme_name/css/component/breadcrumb.css"
-      rm "web/themes/custom/$theme_name/css/component/field.css"
-      rm "web/themes/custom/$theme_name/css/component/header.css"
-      rm "web/themes/custom/$theme_name/css/component/form.css"
-      rm "web/themes/custom/$theme_name/css/component/buttons.css"
-      rm "web/themes/custom/$theme_name/css/component/table.css"
-      rm "web/themes/custom/$theme_name/css/component/messages.css"
-      rm "web/themes/custom/$theme_name/css/component/sidebar.css"
-      rm "web/themes/custom/$theme_name/css/component/node.css"
-      rm "web/themes/custom/$theme_name/css/component/menu.css"
-      rm "web/themes/custom/$theme_name/css/theme/print.css"
-
-      # Create theme folders
-      mkdir "web/themes/custom/$theme_name/config"
-      mkdir "web/themes/custom/$theme_name/config/install"
-
-      # Copy theme regions over
-      SOURCE_FILE=web/core/themes/olivero/olivero.info.yml
-      TARGET_FILE=web/themes/custom/$theme_name/$theme_name.info.yml
-      yq eval ".regions = load(\"$SOURCE_FILE\").regions" "$TARGET_FILE" -i
-
-      # Enable the theme and set as default
-      ddev drush theme:enable $theme_name
-      ddev drush config:set $theme_name.settings logo.use_default 0 -y
-      ddev drush config:set system.theme default $theme_name -y
-    fi
-
-    # Copy phpstan.neon over
-    cp ../Extras/phpstan.neon phpstan.neon
-
-    if [ "$git_choice" = "Yes" ]; then
-      # Copy .gitignore over
-      cp ../Extras/.gitignore .gitignore
-    fi
-
-    # Enable phpmyadmin in DDev
-    yes | ddev phpmyadmin
-
-    # Set the Site Title
+    ddev drush site:install --account-name=$username --account-pass=$password -y --site-name=$sitename
     ddev drush config:set system.site name "$sanitized_title" --yes
 
-    if [ "$git_choice" = "Yes" ]; then
-      # Initalize git repo
-      git init
-      git branch -M main
-    fi
+    make_folders_copy_files
 
-    # Changes to settings.php
-    echo "\$settings['config_sync_directory'] = '../config/default/sync';" >>"web/sites/default/settings.php"
-    echo "\$settings['file_private_path'] = '../private';" >>"web/sites/default/settings.php"
-    echo "\$settings['skip_permissions_hardening'] = FALSE;" >>"web/sites/default/settings.php"
+    # Go into contrib folder and clone issue module or theme
+    cd "web/${MT_project_type}/contrib/"
 
-    # Set the permissions
-    chmod 644 "web/sites/default/settings.php"
-    chmod 755 "web/sites/default"
+    # Setting up repository for the first time
+    git_clone_url="https://git.drupalcode.org/project/${project_name}.git"
 
+    # Setting up repository for the first time
+    git clone ${git_clone_url}
+    cd ${project_name}
+
+    # Add & fetch this issue fork’s repository
+    git remote add "${project_name}-${issue_number}" "git@git.drupal.org:issue/${project_name}-${issue_number}.git"
+    git fetch "${project_name}-${issue_number}"
+
+    # Check out this branch for the first time
+    git checkout -b "${link_text}" --track "${project_name}-${issue_number}/${link_text}"
+
+    # Initialize an empty array
+    dep_array=()
+
+    # Get dependencies from the *.info.yml, add them to our array
+    while read -r value; do
+      dep_array+=("$value")
+    done < <(yq eval '.dependencies[]' "cas.info.yml" | cut -d: -f1)
+
+    # CD back out of the directory
+    cd ../../../../
+
+    # Install dependancies
+    for element in "${dep_array[@]}"; do
+      ddev composer require "drupal/$element"
+    done
+
+    # Enable the module/theme
+    ddev drush en "${project_name}" -y
+
+    # Clear the cache
     ddev drush cr
 
-    # Export config
-    ddev drush cex -y
+    get_dev_modules
+    get_dev_things
 
-    if [ "$git_choice" = "Yes" ]; then
-      git add .
-      git commit -m "Initial commit" -q
+    if [ "$dev_things" = "Yes" ]; then
+      set_dev_things
     fi
 
-    ddev drush cr
+    if [ "${dev_modules}" = "Yes" ]; then
+      install_dev_modules
+    fi
 
+    get_custom_module
+    if [ "${custom_module}" = "Yes" ]; then
+      create_custom_module
+    fi
+
+    get_custom_theme
+    if [ "${custom_theme}" = "Yes" ]; then
+      create_custom_theme
+    fi
+
+    get_git
+
+    change_settings
+    set_permissions
+    export_config
+
+    ddev drush cr
+    enable_phpmyadmin
     yes | ddev restart
+    git_add_and_commit
 
-  fi # End if statement about core issue
+    echo -e "${GREEN}${BOLD}"
+    figlet -f small "Finished!"
+    echo -e "${NC}"
 
-# End if statement about DrupalCMS
+  fi
+  if [ "MT_project_type" = "themes" ]; then
+    # Do some stuff to deal with themes here
+    dog="Woof"
+  fi
 fi
+
+#########################################################
