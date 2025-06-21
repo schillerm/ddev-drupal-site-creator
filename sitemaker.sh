@@ -663,6 +663,10 @@ function get_dev_things {
   select_option "${dev_things_options[@]}"
   dev_things_options_choice=$?
   dev_things="${dev_things_options[$dev_things_options_choice]}"
+
+    if [[ "$clear_toggle" == "on" ]]; then
+    clear
+  fi
 }
 
 function set_dev_things {
