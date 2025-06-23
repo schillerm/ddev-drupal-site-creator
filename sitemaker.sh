@@ -664,7 +664,7 @@ function get_dev_things {
   dev_things_options_choice=$?
   dev_things="${dev_things_options[$dev_things_options_choice]}"
 
-    if [[ "$clear_toggle" == "on" ]]; then
+  if [[ "$clear_toggle" == "on" ]]; then
     clear
   fi
 }
@@ -1058,6 +1058,43 @@ EOF
   esac
 }
 
+function check_command() {
+  if ! command -v "$1" >/dev/null 2>&1; then
+    echo "ERROR: '$1' is not installed or not in PATH"
+    exit 1
+  else
+    echo "'$1' is installed"
+  fi
+}
+
+function check_python_package() {
+  if ! python3 -c "import $1" >/dev/null 2>&1; then
+    echo "ERROR: Python package '$1' is not installed"
+    echo "Try: pip3 install $1"
+    exit 1
+  else
+    echo "Python package '$1' is installed"
+  fi
+}
+
+function check_prerequisites {
+  # Exit immediately if any command fails
+  set -e
+
+  # Exit on error within functions, pipelines, or subshells
+  set -o pipefail
+
+  echo "🔍 Checking required tools and packages..."
+
+  check_command ddev
+  check_command git
+  check_command python3
+  check_command yq
+  check_python_package bs4 # for Beautiful Soup 4
+
+  echo "All dependencies are satisfied. Proceeding..."
+}
+
 #############################################################
 
 red="\e[0;91m"
@@ -1087,6 +1124,9 @@ for i in {1..100}; do
   sleep 0.01
 done
 echo -e "${NC}\n"
+
+#Checking prerequisites
+check_prerequisites
 
 ##############################################################
 
