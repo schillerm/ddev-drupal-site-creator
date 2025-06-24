@@ -1084,7 +1084,8 @@ function check_prerequisites {
   # Exit on error within functions, pipelines, or subshells
   set -o pipefail
 
-  echo "🔍 Checking required tools and packages..."
+  echo "Checking required tools and packages..."
+  echo -e ""
 
   check_command ddev
   check_command git
@@ -1092,7 +1093,16 @@ function check_prerequisites {
   check_command yq
   check_python_package bs4 # for Beautiful Soup 4
 
+  # Turn the exit condition off so rest of the script can run ok
+  set +e
+  echo -e ""
   echo "All dependencies are satisfied. Proceeding..."
+  echo -e ""
+
+  if [[ "$clear_toggle" == "on" ]]; then
+  clear
+fi
+
 }
 
 #############################################################
