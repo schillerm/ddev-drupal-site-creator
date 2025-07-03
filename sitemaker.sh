@@ -908,9 +908,7 @@ function get_dcms_install {
 
 function get_project_stable_version() {
 
-  MODULE="$1" # Replace with any module machine name
-
-  # Use a Python script inline to extract text from the page
+  # Use a Python script inline to extract project stable version from the page
   stable_version=$(
     python3 <<EOF
 import requests
@@ -921,56 +919,79 @@ project_url="$project_url"
 issue_response = requests.get(project_url)
 issue_soup = BeautifulSoup(issue_response.text, "html.parser")
 
-# Find the first element with class "stability-stable"
-sv = issue_soup.find('div', class_='stability-stable')
+# Find the <h3 id="project-releases">
+h3 = issue_soup.find('h3', id='project-releases')
 
-# Within that div, find the version span
-vs = sv.find('span', class_='views-field-field-release-version')
+# Find the next <div> after the <h3>
+next_div = h3.find_next('div') if h3 else None
 
-# Extract the version from the <a> tag
-version = vs.find('a').text.strip()
+# Search inside that div for divs with class "views-field-field-release-version"
+if next_div:
+    version_divs = next_div.find_all('span', class_='views-field-field-release-version')
+    versions = []
+
+    for div in version_divs:
+        a_tag = div.find('a')
+        if a_tag:
+            link_text = a_tag.get_text(strip=True)
+            versions.append(link_text)
+    if versions:
+        version = versions[0]
+    else:
+        print("No <a> tags with text found inside version divs.")
+else:
+    print("No matching div found after <h3 id='project-releases'>.")
 
 if version:
     print(version)
 EOF
   )
+  echo "${version}"
 }
 
 function get_project_latest_drupal_version {
-  # From # project page get the drupal version
-  # Use a Python script inline to extract text from the page
+  # Use a Python script inline to extract drupal version from the page
 
   latest_version=$(
     python3 <<EOF
 import requests
 import re
 from bs4 import BeautifulSoup
+from packaging import version
 
 # Issue queue URL to scrape
 project_url="$project_url"
 issue_response = requests.get(project_url)
 issue_soup = BeautifulSoup(issue_response.text, "html.parser")
 
-# Find the first element with class "stability-stable"
-sv = issue_soup.find('div', class_='stability-stable')
+# Find <small> tag where text starts with "Works with Drupal:"
+small_tag = issue_soup.find('small', string=lambda text: text and text.strip().startswith('Works with Drupal:'))
 
-# Find the <small> tag
-small_tag = sv.find('small', string=re.compile(r'^Works with Drupal:'))
+if small_tag:
+    text = small_tag.get_text()
 
-# Extract text
-text = small_tag.get_text()
+    # Extract versions using regex
+    match = re.search(r'Works with Drupal:\s*(.+)', text)
+    if match:
+        version_string = match.group(1)  # e.g., "^8.7.10 || ^9 || ^10 || ^11"
+        versions_raw = [v.strip() for v in version_string.split('||')]
 
-# Extract version numbers using regex and convert to integers
-versions = list(map(int, re.findall(r'\^(\d+)', text)))
+        # Remove carets, parse versions, and extract major version only
+        major_versions = [version.parse(v.lstrip('^')).major for v in versions_raw]
 
-# Get the latest version
-latest_version = max(versions) if versions else None
+        # Find the latest version
+        latest_version = max(major_versions)
+    else:
+        print("No version string found.")
+else:
+    print("No matching <small> tag found.")
 
 if latest_version:
     print(latest_version)
+
 EOF
   )
-  echo "$latest_version"
+echo "${latest_version}"
 }
 
 function get_issue_url {
@@ -1100,8 +1121,8 @@ function check_prerequisites {
   echo -e ""
 
   if [[ "$clear_toggle" == "on" ]]; then
-  clear
-fi
+    clear
+  fi
 
 }
 
@@ -1246,7 +1267,9 @@ fi
 
 if [ "$drupal_install" = "Drupal site based on an issue" ]; then
   get_issue_url
-  if [ "$MT_project_type" = "core" ]; then
+
+  case "$MT_project_type" in
+  core)
     # Install using justafish/ddev-drupal-core-dev and issue fork
 
     # Setting up repository for the first time
@@ -1278,10 +1301,125 @@ if [ "$drupal_install" = "Drupal site based on an issue" ]; then
     echo -e "${GREEN}${BOLD}"
     figlet -f small "Finished!"
     echo -e "${NC}"
-
-  fi
-  if [ "$MT_project_type" = "modules" ]; then
+    ;;
+  modules)
     get_project_stable_version
+    # returns $stable_version
+    #echo "Stable Version: ${stable_version}"
+
+    basic_drupal_version=$(get_project_latest_drupal_version)
+    # returns $latest_version
+    #echo "Basic Drupal version: ${basic_drupal_version}"
+
+    #echo "Project url: ${project_url}"
+
+    get_site_details "$basic_drupal_version"
+    make_site_folder "$sitename"
+
+    project_type="drupal${basic_drupal_version}"
+    ddev config --project-type="$project_type" --docroot=web
+    ddev start
+
+    recommended_project="recommended-project:^${basic_drupal_version}"
+    ddev composer create-project "drupal/${recommended_project}"
+
+    get_drush_version "$basic_drupal_version"
+    install_drush "$drush_version"
+
+    ddev drush site:install --account-name=$username --account-pass=$password -y --site-name=$sitename
+    ddev drush config:set system.site name "$sanitized_title" --yes
+
+    make_folders_copy_files
+
+    # Go into contrib folder and clone issue module or theme
+    cd "web/${MT_project_type}/contrib/"
+
+    # Setting up repository for the first time
+    git_clone_url="https://git.drupalcode.org/project/${project_name}.git"
+
+    # Setting up repository for the first time
+    git clone ${git_clone_url}
+    cd ${project_name}
+
+    # Add & fetch this issue fork’s repository
+    git remote add "${project_name}-${issue_number}" "git@git.drupal.org:issue/${project_name}-${issue_number}.git"
+    git fetch "${project_name}-${issue_number}"
+
+    # Check out this branch for the first time
+    git checkout -b "${link_text}" --track "${project_name}-${issue_number}/${link_text}"
+
+    # Initialize an empty array
+    dep_array=()
+
+    # Get dependencies from the *.info.yml, add them to our array
+    while read -r value; do
+      dep_array+=("$value")
+    done < <(yq eval '.dependencies[]' "${project_name}.info.yml" | cut -d: -f1)
+
+    # Print the array
+    echo "This is the array: ${dep_array[@]}"
+
+    # CD back out of the directory
+    cd ../../../../
+
+    # Install dependancies
+    for element in "${dep_array[@]}"; do
+      ddev composer require "drupal/$element" -W
+    done
+
+    # Enable the module/theme
+    ddev drush en "${project_name}" -y
+
+    # Clear the cache
+    ddev drush cr
+
+    get_dev_modules
+    get_dev_things
+
+    if [ "$dev_things" = "Yes" ]; then
+      set_dev_things
+    fi
+
+    if [ "${dev_modules}" = "Yes" ]; then
+      install_dev_modules
+    fi
+
+    get_custom_module
+    if [ "${custom_module}" = "Yes" ]; then
+      create_custom_module
+    fi
+
+    get_custom_theme
+    if [ "${custom_theme}" = "Yes" ]; then
+      create_custom_theme
+    fi
+
+    get_git
+
+    change_settings
+    set_permissions
+    export_config
+
+    ddev drush cr
+    enable_phpmyadmin
+    yes | ddev restart
+    git_add_and_commit
+
+    echo -e "${GREEN}${BOLD}"
+    figlet -f small "Finished!"
+    echo -e "${NC}"
+    ;;
+  themes)
+
+    echo -e ""
+    echo -e "Project url : ${project_url}"
+    echo -e "
+    "
+    get_project_stable_version
+
+    echo -e ""
+    echo -e "Stable version : ${stable_version}"
+    echo -e ""
 
     basic_drupal_version=$(get_project_latest_drupal_version)
 
@@ -1326,7 +1464,7 @@ if [ "$drupal_install" = "Drupal site based on an issue" ]; then
     # Get dependencies from the *.info.yml, add them to our array
     while read -r value; do
       dep_array+=("$value")
-    done < <(yq eval '.dependencies[]' "cas.info.yml" | cut -d: -f1)
+    done < <(yq eval '.dependencies[]' "${project_name}.info.yml" | cut -d: -f1)
 
     # CD back out of the directory
     cd ../../../../
@@ -1378,11 +1516,16 @@ if [ "$drupal_install" = "Drupal site based on an issue" ]; then
     figlet -f small "Finished!"
     echo -e "${NC}"
 
-  fi
-  if [ "MT_project_type" = "themes" ]; then
-    # Do some stuff to deal with themes here
+    ;;
+  recipies)
+    # Do some stuff to deal with recipies here
     dog="Woof"
-  fi
+    ;;
+  *)
+    # echo "Invalid project type."
+    ;;
+  esac
+
 fi
 
 #########################################################
