@@ -991,7 +991,7 @@ if latest_version:
 
 EOF
   )
-echo "${latest_version}"
+  echo "${latest_version}"
 }
 
 function get_issue_url {
@@ -1304,14 +1304,8 @@ if [ "$drupal_install" = "Drupal site based on an issue" ]; then
     ;;
   modules)
     get_project_stable_version
-    # returns $stable_version
-    #echo "Stable Version: ${stable_version}"
 
     basic_drupal_version=$(get_project_latest_drupal_version)
-    # returns $latest_version
-    #echo "Basic Drupal version: ${basic_drupal_version}"
-
-    #echo "Project url: ${project_url}"
 
     get_site_details "$basic_drupal_version"
     make_site_folder "$sitename"
@@ -1348,22 +1342,23 @@ if [ "$drupal_install" = "Drupal site based on an issue" ]; then
     # Check out this branch for the first time
     git checkout -b "${link_text}" --track "${project_name}-${issue_number}/${link_text}"
 
-    # Initialize an empty array
-    dep_array=()
-
-    # Get dependencies from the *.info.yml, add them to our array
-    while read -r value; do
-      dep_array+=("$value")
-    done < <(yq eval '.dependencies[]' "${project_name}.info.yml" | cut -d: -f1)
-
-    # Print the array
-    echo "This is the array: ${dep_array[@]}"
-
     # CD back out of the directory
     cd ../../../../
 
+    # Get dependencies from composer show
+    module_info=$(ddev composer show "drupal/${project_name}" --format=json --all)
+
+    # Extract the required package names into a Bash array
+    readarray -t required_modules < <(
+      echo "$module_info" | jq -r '
+    .requires
+    | keys[]
+    | sub("^drupal/"; "")
+    | select(. != "core" and . != "ext-dom")'
+    )
+
     # Install dependancies
-    for element in "${dep_array[@]}"; do
+    for element in "${required_modules[@]}"; do
       ddev composer require "drupal/$element" -W
     done
 
