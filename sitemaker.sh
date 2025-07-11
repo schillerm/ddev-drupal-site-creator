@@ -936,8 +936,8 @@ function get_project_stable_version() {
 function get_project_latest_drupal_version {
   # Use a Python script inline to extract drupal version from the page
 
-# Export the variable so Python can access it
-export PROJECT_URL="$project_url"
+  # Export the variable so Python can access it
+  export PROJECT_URL="$project_url"
 
   latest_version=$(
     python3 <<EOF
@@ -1004,12 +1004,12 @@ function get_issue_url {
     fi
   done
 
-# Export the variable so Python can access it
-export ISSUE_URL="$issue_url"
+  # Export the variable so Python can access it
+  export ISSUE_URL="$issue_url"
 
-# Extract issue fork branch from the page
-link_text=$(
-python3 <<EOF
+  # Extract issue fork branch from the page
+  link_text=$(
+    python3 <<EOF
 import os
 import requests
 from bs4 import BeautifulSoup
@@ -1024,7 +1024,7 @@ link = issue_soup.find('a', attrs={'title': 'View branch in GitLab'})
 if link:
     print(link.text.strip())
 EOF
-)
+  )
 
   # Build Drupal.org API url
   p_url="https://www.drupal.org/api-d7/node.json?field_project_machine_name=${project_name}"
@@ -1320,14 +1320,7 @@ if [ "$drupal_install" = "Drupal site based on an issue" ]; then
     module_info=$(ddev composer show "drupal/${project_name}" --format=json --all)
 
     # Extract the required package names into a Bash array
-    readarray -t required_modules < <(
-      echo "$module_info" | jq -r '
-        .requires
-        | keys[]
-        | sub("^drupal/"; "")
-        | select(. != "core" and . != "ext-dom")
-      '
-    )
+    readarray -t required_modules < <(echo "$module_info" | jq -r '.requires | keys[] | sub("^drupal/"; "") | select(. != "core" and . != "ext-dom")')
 
     # Install dependancies
     for element in "${required_modules[@]}"; do
