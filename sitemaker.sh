@@ -908,49 +908,36 @@ function get_dcms_install {
 
 function get_project_stable_version() {
 
-  # Use a Python script inline to extract project stable version from the page
-  stable_version=$(
-    python3 <<EOF
-import requests
-from bs4 import BeautifulSoup
+  module_info=$(composer show "drupal/${project_name}" --format=json --all)
 
-# Issue queue URL to scrape
-project_url="$project_url"
-issue_response = requests.get(project_url)
-issue_soup = BeautifulSoup(issue_response.text, "html.parser")
+  # Extract all versions
+  mapfile -t versions < <(echo "$module_info" | jq -r '.versions[]')
 
-# Find the <h3 id="project-releases">
-h3 = issue_soup.find('h3', id='project-releases')
+  filtered_versions=()
 
-# Find the next <div> after the <h3>
-next_div = h3.find_next('div') if h3 else None
+  # Remove non stable items
+  for version in "${versions[@]}"; do
+    if [[ "$version" =~ -dev$ ]] ||
+      [[ "$version" =~ ^dev- ]] ||
+      [[ "$version" =~ -alpha[0-9]+$ ]] ||
+      [[ "$version" =~ -rc[0-9]+$ ]]; then
+      continue
+    fi
+    filtered_versions+=("$version")
+  done
 
-# Search inside that div for divs with class "views-field-field-release-version"
-if next_div:
-    version_divs = next_div.find_all('span', class_='views-field-field-release-version')
-    versions = []
+  # Get the latest version using version-aware sort (-V) and tail
+  latest_version=$(printf "%s\n" "${filtered_versions[@]}" | sort -V | tail -n 1)
 
-    for div in version_divs:
-        a_tag = div.find('a')
-        if a_tag:
-            link_text = a_tag.get_text(strip=True)
-            versions.append(link_text)
-    if versions:
-        version = versions[0]
-    else:
-        print("No <a> tags with text found inside version divs.")
-else:
-    print("No matching div found after <h3 id='project-releases'>.")
+  echo "This is modules stable version : ${latest_version}"
 
-if version:
-    print(version)
-EOF
-  )
-  echo "${version}"
 }
 
 function get_project_latest_drupal_version {
   # Use a Python script inline to extract drupal version from the page
+
+# Export the variable so Python can access it
+export PROJECT_URL="$project_url"
 
   latest_version=$(
     python3 <<EOF
@@ -960,7 +947,7 @@ from bs4 import BeautifulSoup
 from packaging import version
 
 # Issue queue URL to scrape
-project_url="$project_url"
+project_url = os.environ.get("PROJECT_URL")
 issue_response = requests.get(project_url)
 issue_soup = BeautifulSoup(issue_response.text, "html.parser")
 
@@ -1017,66 +1004,50 @@ function get_issue_url {
     fi
   done
 
-  # Use a Python script inline to extract link text from the page
-  link_text=$(
-    python3 <<EOF
+# Export the variable so Python can access it
+export ISSUE_URL="$issue_url"
+
+# Extract issue fork branch from the page
+link_text=$(
+python3 <<EOF
+import os
 import requests
 from bs4 import BeautifulSoup
 
-# Issue queue URL to scrape
-issue_url="$issue_url"
+# Get the issue URL from environment variable
+issue_url = os.environ.get("ISSUE_URL")
 issue_response = requests.get(issue_url)
 issue_soup = BeautifulSoup(issue_response.text, "html.parser")
 
-# Find the first element with class "remote-add-ssh"
+# Find the first link with the GitLab fork
 link = issue_soup.find('a', attrs={'title': 'View branch in GitLab'})
 if link:
     print(link.text.strip())
 EOF
-  )
+)
 
-  # Work out if Module or theme here..
-  # Use a Python script inline to extract name from the page
-  MT_project_type_raw=$(
-    python3 <<EOF
-import requests
-from bs4 import BeautifulSoup
+  # Build Drupal.org API url
+  p_url="https://www.drupal.org/api-d7/node.json?field_project_machine_name=${project_name}"
 
-# Issue queue URL to scrape
-issue_url="$issue_url"
-issue_response = requests.get(issue_url)
-issue_soup = BeautifulSoup(issue_response.text, "html.parser")
-
-# Find the <nav> by class
-nav = issue_soup.find('nav', class_='breadcrumb container-12')
-
-# Get the first <a> tag inside it
-if nav:
-    first_link = nav.find('a')
-    if first_link:
-        print(first_link.text.strip())  # Output: Modules
-EOF
-  )
-
-  # Set project URL here
-  # https://www.drupal.org/project/cas/issues/3275551
-  project_url="https://www.drupal.org/project/${project_name}"
+  MT_project_type_raw=$(curl -s "$p_url" | jq -r '.list[0].type')
+  project_url=$(curl -s "$p_url" | jq -r '.list[0].url')
 
   # Set the project type ..
   case "$MT_project_type_raw" in
-  "Modules")
+  "project_module")
     MT_project_type="modules"
     ;;
-  "Themes")
+  "project_theme")
     MT_project_type="themes"
     ;;
-  "Drupal core")
+  "project_core")
     MT_project_type="core"
     ;;
   *)
     echo "Unknown project type: $MT_project_type_raw"
     ;;
   esac
+
 }
 
 function check_command() {
@@ -1156,7 +1127,7 @@ for i in {1..100}; do
 done
 echo -e "${NC}\n"
 
-#Checking prerequisites
+# Checking prerequisites
 check_prerequisites
 
 ##############################################################
@@ -1351,10 +1322,11 @@ if [ "$drupal_install" = "Drupal site based on an issue" ]; then
     # Extract the required package names into a Bash array
     readarray -t required_modules < <(
       echo "$module_info" | jq -r '
-    .requires
-    | keys[]
-    | sub("^drupal/"; "")
-    | select(. != "core" and . != "ext-dom")'
+        .requires
+        | keys[]
+        | sub("^drupal/"; "")
+        | select(. != "core" and . != "ext-dom")
+      '
     )
 
     # Install dependancies
