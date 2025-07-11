@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Uncomment to do clears, comment out to run with no clears, see all output.
-clear_toggle="on"
+# clear_toggle="on"
 
 function select_option {
 
@@ -943,6 +943,7 @@ function get_project_latest_drupal_version {
     python3 <<EOF
 import requests
 import re
+import os
 from bs4 import BeautifulSoup
 from packaging import version
 
