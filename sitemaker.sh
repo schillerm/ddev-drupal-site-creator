@@ -630,6 +630,24 @@ function get_dev_modules {
   dev_modules="${dev_modules_options[$dev_modules_options_choice]}"
 }
 
+function get_theme_type {
+  if [[ "$clear_toggle" == "on" ]]; then
+    clear
+  fi
+  echo -e "${blue}Creating new DDev Drupal site${reset}"
+  echo -e " "
+  echo -e "Is this theme an admin or regular theme? Sorry but there is no way to find this out expect by asking (maybe use AI in the future)."
+  echo
+  theme_type_options=(
+    Regular
+    Admin
+  )
+
+  select_option "${theme_type_options[@]}"
+  theme_type_options_choice=$?
+  theme_type="${theme_type_options[$theme_type_options_choice]}"
+}
+
 function install_dev_modules {
   # Install and enable useful dev modules
   ddev composer require cweagans/composer-patches
@@ -910,6 +928,9 @@ function get_project_stable_version() {
 
   module_info=$(composer show "drupal/${project_name}" --format=json --all)
 
+  # Composer show does not always have a latest property
+  # latest_version=$(echo "$module_info" | jq -r '.latest')
+
   # Extract all versions
   mapfile -t versions < <(echo "$module_info" | jq -r '.versions[]')
 
@@ -929,13 +950,9 @@ function get_project_stable_version() {
   # Get the latest version using version-aware sort (-V) and tail
   latest_version=$(printf "%s\n" "${filtered_versions[@]}" | sort -V | tail -n 1)
 
-  echo "This is modules stable version : ${latest_version}"
-
 }
 
 function get_project_latest_drupal_version {
-  # Use a Python script inline to extract drupal version from the page
-
   # Export the variable so Python can access it
   export PROJECT_URL="$project_url"
 
@@ -947,40 +964,42 @@ import os
 from bs4 import BeautifulSoup
 from packaging import version
 
-# Issue queue URL to scrape
 project_url = os.environ.get("PROJECT_URL")
-issue_response = requests.get(project_url)
-issue_soup = BeautifulSoup(issue_response.text, "html.parser")
+latest_version = None
 
-# Find <small> tag where text starts with "Works with Drupal:"
-small_tag = issue_soup.find('small', string=lambda text: text and text.strip().startswith('Works with Drupal:'))
+try:
+    issue_response = requests.get(project_url, timeout=10)
+    issue_response.raise_for_status()
+    soup = BeautifulSoup(issue_response.text, "html.parser")
 
-if small_tag:
-    text = small_tag.get_text()
+    small_tag = soup.find('small', string=lambda text: text and text.strip().startswith('Works with Drupal:'))
+    if small_tag:
+        match = re.search(r'Works with Drupal:\s*(.+)', small_tag.get_text())
+        if match:
+            version_string = match.group(1)  # e.g., "^8.7.10 || ^9 || ^10"
+            versions_raw = [v.strip() for v in version_string.split('||')]
 
-    # Extract versions using regex
-    match = re.search(r'Works with Drupal:\s*(.+)', text)
-    if match:
-        version_string = match.group(1)  # e.g., "^8.7.10 || ^9 || ^10 || ^11"
-        versions_raw = [v.strip() for v in version_string.split('||')]
+            major_versions = []
+            for v in versions_raw:
+                cleaned = v.lstrip('^').split('.')[0]  # get major only
+                try:
+                    major = int(cleaned)
+                    major_versions.append(major)
+                except ValueError:
+                    continue
 
-        # Remove carets, parse versions, and extract major version only
-        major_versions = [version.parse(v.lstrip('^')).major for v in versions_raw]
+            if major_versions:
+                latest_version = max(major_versions)
+except Exception as e:
+    pass  # Optionally: print(str(e)) for debugging
 
-        # Find the latest version
-        latest_version = max(major_versions)
-    else:
-        print("No version string found.")
-else:
-    print("No matching <small> tag found.")
-
-if latest_version:
+if latest_version is not None:
     print(latest_version)
-
 EOF
   )
   echo "${latest_version}"
 }
+
 
 function get_issue_url {
 
@@ -1081,6 +1100,7 @@ function check_prerequisites {
   echo -e ""
 
   check_command ddev
+  check_command composer
   check_command git
   check_command python3
   check_command yq
@@ -1320,12 +1340,15 @@ if [ "$drupal_install" = "Drupal site based on an issue" ]; then
     # Get dependencies from composer show
     module_info=$(ddev composer show "drupal/${project_name}" --format=json --all)
 
-    # Extract the required package names into a Bash array
-    readarray -t required_modules < <(echo "$module_info" | jq -r '.requires | keys[] | sub("^drupal/"; "") | select(. != "core" and . != "ext-dom")')
+    # Extract the required package names into an array, excluding only drupal/core and drupal/ext-dom
+    readarray -t required_packages < <(
+      echo "$module_info" |
+        jq -r '.requires | keys[] | select(. != "drupal/core" and . != "drupal/ext-dom")'
+    )
 
-    # Install dependancies
-    for element in "${required_modules[@]}"; do
-      ddev composer require "drupal/$element" -W
+    # Install dependencies with Composer
+    for package in "${required_packages[@]}"; do
+      ddev composer require "$package" -W
     done
 
     # Enable the module/theme
@@ -1372,15 +1395,7 @@ if [ "$drupal_install" = "Drupal site based on an issue" ]; then
     ;;
   themes)
 
-    echo -e ""
-    echo -e "Project url : ${project_url}"
-    echo -e "
-    "
     get_project_stable_version
-
-    echo -e ""
-    echo -e "Stable version : ${stable_version}"
-    echo -e ""
 
     basic_drupal_version=$(get_project_latest_drupal_version)
 
@@ -1419,24 +1434,40 @@ if [ "$drupal_install" = "Drupal site based on an issue" ]; then
     # Check out this branch for the first time
     git checkout -b "${link_text}" --track "${project_name}-${issue_number}/${link_text}"
 
-    # Initialize an empty array
-    dep_array=()
-
-    # Get dependencies from the *.info.yml, add them to our array
-    while read -r value; do
-      dep_array+=("$value")
-    done < <(yq eval '.dependencies[]' "${project_name}.info.yml" | cut -d: -f1)
-
     # CD back out of the directory
     cd ../../../../
 
-    # Install dependancies
-    for element in "${dep_array[@]}"; do
-      ddev composer require "drupal/$element"
+    # Get dependencies from composer show
+    module_info=$(ddev composer show "drupal/${project_name}" --format=json --all)
+
+    # Extract the required package names into an array, excluding only drupal/core and drupal/ext-dom
+    readarray -t required_packages < <(
+      echo "$module_info" |
+        jq -r '.requires | keys[] | select(. != "drupal/core" and . != "drupal/ext-dom")'
+    )
+
+    # Install dependencies with Composer
+    for package in "${required_packages[@]}"; do
+      ddev composer require "$package" -W
     done
 
-    # Enable the module/theme
-    ddev drush en "${project_name}" -y
+    # Enable the theme and set as default
+    ddev drush theme:enable ${project_name}
+    ddev drush config:set ${project_name}.settings logo.use_default 0 -y
+
+    # Ask here if this is an admin theme or not
+    get_theme_type
+
+    if [ "$theme_type" = "Admin" ]; then
+      ddev drush config:set system.theme admin ${project_name} -y
+    else
+      ddev drush config:set system.theme default ${project_name} -y
+    fi
+
+    # Enable dependancies
+    for element in "${required_modules[@]}"; do
+      ddev drush en "${element}" -y
+    done
 
     # Clear the cache
     ddev drush cr
