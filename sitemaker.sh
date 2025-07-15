@@ -926,80 +926,51 @@ function get_dcms_install {
 
 function get_project_stable_version() {
 
-  module_info=$(composer show "drupal/${project_name}" --format=json --all)
+  # Grab json object all about this project
+  module_info=$(composer show "drupal/${project_name}" --format=json -all)
 
-  # Composer show does not always have a latest property
-  # latest_version=$(echo "$module_info" | jq -r '.latest')
-
-  # Extract all versions
+  # Extract all the versions
   mapfile -t versions < <(echo "$module_info" | jq -r '.versions[]')
 
-  filtered_versions=()
+  # Get the first item in the versions array
+  latest_version="${versions[0]}"
 
-  # Remove non stable items
-  for version in "${versions[@]}"; do
-    if [[ "$version" =~ -dev$ ]] ||
-      [[ "$version" =~ ^dev- ]] ||
-      [[ "$version" =~ -alpha[0-9]+$ ]] ||
-      [[ "$version" =~ -rc[0-9]+$ ]]; then
-      continue
-    fi
-    filtered_versions+=("$version")
-  done
+  # Need to check if the version begins with old style versioning (eg 8.x-1.x-dev rather than 1.x-dev)
 
-  # Get the latest version using version-aware sort (-V) and tail
-  latest_version=$(printf "%s\n" "${filtered_versions[@]}" | sort -V | tail -n 1)
+  # Test if page for the old version exists.
+  old_style_version_url="https://www.drupal.org/project/${project_name}/releases/8.x-${latest_version}"
+
+  # Get the status code for that url
+  old_style_version_url_status_code=$(curl -o /dev/null -s -w "%{http_code}" "$old_style_version_url")
+
+  # If old style version exists then change the latest_version to be that.
+  if [[ "$old_style_version_url_status_code" == "200" ]]; then
+    latest_version="8.x-${latest_version}"
+  fi
 
 }
 
 function get_project_latest_drupal_version {
-  # Export the variable so Python can access it
-  export PROJECT_URL="$project_url"
 
-  latest_version=$(
-    python3 <<EOF
-import requests
-import re
-import os
-from bs4 import BeautifulSoup
-from packaging import version
+  export PROJECT_NAME="$project_name"
+  export LATEST_VERSION="$latest_version"
 
-project_url = os.environ.get("PROJECT_URL")
-latest_version = None
+  release_history_page=$(curl -s "https://updates.drupal.org/release-history/${PROJECT_NAME}/current")
 
-try:
-    issue_response = requests.get(project_url, timeout=10)
-    issue_response.raise_for_status()
-    soup = BeautifulSoup(issue_response.text, "html.parser")
+  core_compatibility=$(echo "$release_history_page" | yq -p=xml -o=y ".project.releases.release | map(select(.version == \"$LATEST_VERSION\")) | .[0].core_compatibility")
 
-    small_tag = soup.find('small', string=lambda text: text and text.strip().startswith('Works with Drupal:'))
-    if small_tag:
-        match = re.search(r'Works with Drupal:\s*(.+)', small_tag.get_text())
-        if match:
-            version_string = match.group(1)  # e.g., "^8.7.10 || ^9 || ^10"
-            versions_raw = [v.strip() for v in version_string.split('||')]
+# Set $latest_drupal_version (Major version supported by this project)
+  latest_drupal_version=$(echo "$core_compatibility" |
+    tr '|' '\n' |
+    sed 's/[^0-9.]*//g' |
+    grep -Ev '^12(\.|$)' |
+    sort -V |
+    tail -n1)
 
-            major_versions = []
-            for v in versions_raw:
-                cleaned = v.lstrip('^').split('.')[0]  # get major only
-                try:
-                    major = int(cleaned)
-                    major_versions.append(major)
-                except ValueError:
-                    continue
+    # Set $basic_drupal_version (Major version supported by this project)
+    basic_drupal_version=$(echo "$latest_drupal_version" | cut -d. -f1)
 
-            if major_versions:
-                latest_version = max(major_versions)
-except Exception as e:
-    pass  # Optionally: print(str(e)) for debugging
-
-if latest_version is not None:
-    print(latest_version)
-EOF
-  )
-  echo "${latest_version}"
 }
-
 
 function get_issue_url {
 
@@ -1296,8 +1267,9 @@ if [ "$drupal_install" = "Drupal site based on an issue" ]; then
     ;;
   modules)
     get_project_stable_version
+    get_project_latest_drupal_version
 
-    basic_drupal_version=$(get_project_latest_drupal_version)
+    echo "Basic Drupal version : ${basic_drupal_version}"
 
     get_site_details "$basic_drupal_version"
     make_site_folder "$sitename"
@@ -1396,8 +1368,7 @@ if [ "$drupal_install" = "Drupal site based on an issue" ]; then
   themes)
 
     get_project_stable_version
-
-    basic_drupal_version=$(get_project_latest_drupal_version)
+    get_project_latest_drupal_version
 
     get_site_details "$basic_drupal_version"
     make_site_folder "$sitename"
