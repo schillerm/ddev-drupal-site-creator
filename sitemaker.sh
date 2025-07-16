@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Uncomment to do clears, comment out to run with no clears, see all output.
-# clear_toggle="on"
+clear_toggle="on"
 
 function select_option {
 
@@ -959,7 +959,7 @@ function get_project_latest_drupal_version {
 
   core_compatibility=$(echo "$release_history_page" | yq -p=xml -o=y ".project.releases.release | map(select(.version == \"$LATEST_VERSION\")) | .[0].core_compatibility")
 
-# Set $latest_drupal_version (Major version supported by this project)
+  # Set $latest_drupal_version (Major version supported by this project)
   latest_drupal_version=$(echo "$core_compatibility" |
     tr '|' '\n' |
     sed 's/[^0-9.]*//g' |
@@ -967,8 +967,8 @@ function get_project_latest_drupal_version {
     sort -V |
     tail -n1)
 
-    # Set $basic_drupal_version (Major version supported by this project)
-    basic_drupal_version=$(echo "$latest_drupal_version" | cut -d. -f1)
+  # Set $basic_drupal_version (Major version supported by this project)
+  basic_drupal_version=$(echo "$latest_drupal_version" | cut -d. -f1)
 
 }
 
@@ -1039,6 +1039,33 @@ EOF
     ;;
   esac
 
+}
+
+function is_a_theme_required {
+
+  # Remove the -dev bit from the end of latest_version
+  if [[ "$latest_version" == *-dev ]]; then
+    trimmed_version="${latest_version%-dev}"
+  fi
+
+  # Build the drupalcode url
+  module_install_file_url="https://git.drupalcode.org/project/${project_name}/-/raw/${trimmed_version}/${project_name}.install"
+
+  # Download and grep for lines including themeExists
+  theme_exists=$(curl -s "$module_install_file_url" | grep -Ei 'themeExists')
+
+  if [[ -n "$theme_exists" ]]; then
+
+    # Get theme name
+    theme_name=$(echo "${theme_exists}" | grep -oP "themeExists\('\K[^']+")
+
+    # return theme name
+    echo "$theme_name"
+  else
+
+    # return not found 'no'
+    echo "no"
+  fi
 }
 
 function check_command() {
@@ -1269,8 +1296,6 @@ if [ "$drupal_install" = "Drupal site based on an issue" ]; then
     get_project_stable_version
     get_project_latest_drupal_version
 
-    echo "Basic Drupal version : ${basic_drupal_version}"
-
     get_site_details "$basic_drupal_version"
     make_site_folder "$sitename"
 
@@ -1322,6 +1347,30 @@ if [ "$drupal_install" = "Drupal site based on an issue" ]; then
     for package in "${required_packages[@]}"; do
       ddev composer require "$package" -W
     done
+
+    # Check if a theme is required for install
+    if [[ "$is_a_theme_required" != "no" ]]; then
+
+      # Call the function and store the result
+      theme_required=$(is_a_theme_required)
+
+      # Use the result to install the theme
+      ddev composer require drupal/"$theme_required" -W
+
+      # Enable the theme and set as default
+      ddev drush theme:enable ${theme_required}
+      ddev drush config:set ${theme_required}.settings logo.use_default 0 -y
+
+      # Ask here if this is an admin theme or not
+      get_theme_type
+
+      if [ "$theme_type" = "Admin" ]; then
+        ddev drush config:set system.theme admin ${theme_required} -y
+      else
+        ddev drush config:set system.theme default ${theme_required} -y
+      fi
+
+    fi
 
     # Enable the module/theme
     ddev drush en "${project_name}" -y
