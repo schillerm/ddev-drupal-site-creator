@@ -630,13 +630,14 @@ function get_dev_modules {
   dev_modules="${dev_modules_options[$dev_modules_options_choice]}"
 }
 
-function get_theme_type {
+function get_theme_type() {
   if [[ "$clear_toggle" == "on" ]]; then
     clear
   fi
+  local theme="$1"
   echo -e "${blue}Creating new DDev Drupal site${reset}"
   echo -e " "
-  echo -e "Is this theme an admin or regular theme? Sorry but there is no way to find this out expect by asking (maybe use AI in the future)."
+  echo -e "Is this ${theme} theme an admin or regular theme? Sorry but there is no way to find this out expect by asking (maybe use AI in the future)."
   echo
   theme_type_options=(
     Regular
@@ -1362,7 +1363,7 @@ if [ "$drupal_install" = "Drupal site based on an issue" ]; then
       ddev drush config:set ${theme_required}.settings logo.use_default 0 -y
 
       # Ask here if this is an admin theme or not
-      get_theme_type
+      get_theme_type "$theme_required"
 
       if [ "$theme_type" = "Admin" ]; then
         ddev drush config:set system.theme admin ${theme_required} -y
