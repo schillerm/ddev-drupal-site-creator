@@ -545,7 +545,7 @@ function get_drush_version() {
   fi
 
   case "$drupal_version" in
-  "11.1.6" | "11.1.5" | "11.1.4" | "11.1.3" | "11.1.2" | "11.1.1" | "11.1.0")
+  "11" | "11.1.6" | "11.1.5" | "11.1.4" | "11.1.3" | "11.1.2" | "11.1.1" | "11.1.0")
     drush_version=13
     ;;
 
@@ -1329,8 +1329,12 @@ if [ "$drupal_install" = "Drupal site based on an issue" ]; then
     git remote add "${project_name}-${issue_number}" "git@git.drupal.org:issue/${project_name}-${issue_number}.git"
     git fetch "${project_name}-${issue_number}"
 
+    search_pattern="${project_name}-${issue_number}/${issue_number}-"
+
+    issue_branch=$(git branch -r | grep "${search_pattern}" | head -n 1 | sed 's/^[ *]*//')
+
     # Check out this branch for the first time
-    git checkout -b "${link_text}" --track "${project_name}-${issue_number}/${link_text}"
+    git checkout -b "${link_text}" --track "${issue_branch}"
 
     # CD back out of the directory
     cd ../../../../
@@ -1349,14 +1353,16 @@ if [ "$drupal_install" = "Drupal site based on an issue" ]; then
       ddev composer require "$package" -W
     done
 
-    # Check if a theme is required for install
-    if [[ "$is_a_theme_required" != "no" ]]; then
+    # Do a check if this module requires a theme
+    theme_query_result=$(is_a_theme_required);
 
-      # Call the function and store the result
-      theme_required=$(is_a_theme_required)
+    echo "Theme query: ${theme_query_result}"
+
+    # If true then install it
+    if [[ "$theme_query_result" != "no" ]]; then
 
       # Use the result to install the theme
-      ddev composer require drupal/"$theme_required" -W
+      ddev composer require drupal/"$theme_query_result" -W
 
       # Enable the theme and set as default
       ddev drush theme:enable ${theme_required}
