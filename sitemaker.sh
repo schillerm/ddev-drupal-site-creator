@@ -996,28 +996,6 @@ function get_issue_url {
     fi
   done
 
-  # Export the variable so Python can access it
-  export ISSUE_URL="$issue_url"
-
-  # Extract issue fork branch from the page
-  link_text=$(
-    python3 <<EOF
-import os
-import requests
-from bs4 import BeautifulSoup
-
-# Get the issue URL from environment variable
-issue_url = os.environ.get("ISSUE_URL")
-issue_response = requests.get(issue_url)
-issue_soup = BeautifulSoup(issue_response.text, "html.parser")
-
-# Find the first link with the GitLab fork
-link = issue_soup.find('a', attrs={'title': 'View branch in GitLab'})
-if link:
-    print(link.text.strip())
-EOF
-  )
-
   # Build Drupal.org API url
   p_url="https://www.drupal.org/api-d7/node.json?field_project_machine_name=${project_name}"
 
@@ -1103,7 +1081,7 @@ function check_prerequisites {
   check_command git
   check_command python3
   check_command yq
-  check_python_package bs4 # for Beautiful Soup 4
+  #check_python_package bs4 # for Beautiful Soup 4
 
   # Turn the exit condition off so rest of the script can run ok
   set +e
@@ -1286,6 +1264,13 @@ if [ "$drupal_install" = "Drupal site based on an issue" ]; then
     # git fetch
     git fetch "${project_name}-${issue_number}"
 
+    search_pattern="${project_name}-${issue_number}/${issue_number}-"
+
+    issue_branch=$(git branch -r | grep "${search_pattern}" | head -n 1 | sed 's/^[ *]*//')
+
+    # Set the link_text
+    link_text="${issue_branch#*/}"
+
     # Check out the branch
     git checkout -b "${link_text}" --track "${project_name}-${issue_number}/${link_text}"
 
@@ -1332,6 +1317,9 @@ if [ "$drupal_install" = "Drupal site based on an issue" ]; then
     search_pattern="${project_name}-${issue_number}/${issue_number}-"
 
     issue_branch=$(git branch -r | grep "${search_pattern}" | head -n 1 | sed 's/^[ *]*//')
+
+    # Set the link_text
+    link_text="${issue_branch#*/}"
 
     # Check out this branch for the first time
     git checkout -b "${link_text}" --track "${issue_branch}"
@@ -1457,6 +1445,13 @@ if [ "$drupal_install" = "Drupal site based on an issue" ]; then
     # Add & fetch this issue fork’s repository
     git remote add "${project_name}-${issue_number}" "git@git.drupal.org:issue/${project_name}-${issue_number}.git"
     git fetch "${project_name}-${issue_number}"
+
+    search_pattern="${project_name}-${issue_number}/${issue_number}-"
+
+    issue_branch=$(git branch -r | grep "${search_pattern}" | head -n 1 | sed 's/^[ *]*//')
+
+    # Set the link_text
+    link_text="${issue_branch#*/}"
 
     # Check out this branch for the first time
     git checkout -b "${link_text}" --track "${project_name}-${issue_number}/${link_text}"
