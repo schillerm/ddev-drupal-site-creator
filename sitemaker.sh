@@ -1310,19 +1310,26 @@ if [ "$drupal_install" = "Drupal site based on an issue" ]; then
     git clone ${git_clone_url}
     cd ${project_name}
 
-    # Add & fetch this issue fork’s repository
-    git remote add "${project_name}-${issue_number}" "git@git.drupal.org:issue/${project_name}-${issue_number}.git"
-    git fetch "${project_name}-${issue_number}"
+    # Try Add & fetch this issue fork’s repository
+    if git remote add "${project_name}-${issue_number}" "git@git.drupal.org:issue/${project_name}-${issue_number}.git" > /dev/null 2>&1; then
 
-    search_pattern="${project_name}-${issue_number}/${issue_number}-"
+      if git fetch "${project_name}-${issue_number}" > /dev/null 2>&1; then
 
-    issue_branch=$(git branch -r | grep "${search_pattern}" | head -n 1 | sed 's/^[ *]*//')
+      search_pattern="${project_name}-${issue_number}/${issue_number}-"
 
-    # Set the link_text
-    link_text="${issue_branch#*/}"
+      issue_branch=$(git branch -r | grep "${search_pattern}" | head -n 1 | sed 's/^[ *]*//')
 
-    # Check out this branch for the first time
-    git checkout -b "${link_text}" --track "${issue_branch}"
+      # Set the link_text
+      link_text="${issue_branch#*/}"
+
+      # Check out this branch for the first time
+      git checkout -b "${link_text}" --track "${issue_branch}"
+      fi
+
+      echo "❌ Issue branch not found!"
+    else
+      echo "❌ Issue branch not found!"
+    fi
 
     # CD back out of the directory
     cd ../../../../
@@ -1343,8 +1350,6 @@ if [ "$drupal_install" = "Drupal site based on an issue" ]; then
 
     # Do a check if this module requires a theme
     theme_query_result=$(is_a_theme_required);
-
-    echo "Theme query: ${theme_query_result}"
 
     # If true then install it
     if [[ "$theme_query_result" != "no" ]]; then
