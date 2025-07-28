@@ -1467,10 +1467,10 @@ if [ "$drupal_install" = "Drupal site based on an issue" ]; then
     # Get dependencies from composer show
     module_info=$(ddev composer show "drupal/${project_name}" --format=json --all)
 
-    # Extract the required package names into an array, excluding only drupal/core and drupal/ext-dom
+    # Extract the required package names into an array, excluding drupal/core, drupal/ext-dom and anything without a slash like php extensions
     readarray -t required_packages < <(
       echo "$module_info" |
-        jq -r '.requires | keys[] | select(. != "drupal/core" and . != "drupal/ext-dom")'
+        jq -r '.requires | keys[] | select(test("/") and . != "drupal/core" and . != "drupal/ext-dom")'
     )
 
     # Install dependencies with Composer
