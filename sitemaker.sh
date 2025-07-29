@@ -1540,10 +1540,9 @@ if [ "$drupal_install" = "Drupal site based on an issue" ]; then
     echo -e "${NC}"
 
     ;;
-  recipies)
-    # Do some stuff to deal with recipies here
-    dog="Woof"
-    ;;
+  # recipies)
+  #   # Do some stuff to deal with recipies here
+  #   ;;
   *)
     # echo "Invalid project type."
     ;;
