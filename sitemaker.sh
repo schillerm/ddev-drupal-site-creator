@@ -1315,15 +1315,20 @@ if [ "$drupal_install" = "Drupal site based on an issue" ]; then
 
       if git fetch "${project_name}-${issue_number}" > /dev/null 2>&1; then
 
-      search_pattern="${project_name}-${issue_number}/${issue_number}-"
+      # Set the remote name
+      remote_name="${project_name}-${issue_number}"
 
-      issue_branch=$(git branch -r | grep "${search_pattern}" | head -n 1 | sed 's/^[ *]*//')
+      # Get remote branch with the latest commit
+      issue_branch=$(git for-each-ref --sort=-committerdate \
+        --format='%(refname:short)' \
+        "refs/remotes/${remote_name}/" | head -n 1)
 
       # Set the link_text
       link_text="${issue_branch#*/}"
 
       # Check out this branch for the first time
       git checkout -b "${link_text}" --track "${issue_branch}"
+
       fi
 
     else
