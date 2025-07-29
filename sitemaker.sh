@@ -1544,7 +1544,7 @@ if [ "$drupal_install" = "Drupal site based on an issue" ]; then
   #   # Do some stuff to deal with recipies here
   #   ;;
   *)
-    # echo "Invalid project type."
+    echo "Invalid project type."
     ;;
   esac
 
