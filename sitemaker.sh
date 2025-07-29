@@ -1014,7 +1014,7 @@ function get_issue_url {
     MT_project_type="core"
     ;;
   *)
-    echo "Unknown project type: $MT_project_type_raw"
+    echo "Unknown project type (not core, theme or a module issue) : $MT_project_type_raw"
     ;;
   esac
 
