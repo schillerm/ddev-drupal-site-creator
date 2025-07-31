@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 # Uncomment to do clears, comment out to run with no clears, see all output.
 clear_toggle="on"
@@ -1130,6 +1130,12 @@ check_prerequisites
 
 ##############################################################
 
+# Make the site outside of project root
+
+# cd ../../
+
+##############################################################
+
 if [[ "$clear_toggle" == "on" ]]; then
   clear
 fi
@@ -1541,7 +1547,7 @@ if [ "$drupal_install" = "Drupal site based on an issue" ]; then
 
     ;;
   # recipies)
-  #   # Do some stuff to deal with recipies here
+  #   # Do some stuff to deal with recipies here at some point
   #   ;;
   *)
     echo "Invalid project type."

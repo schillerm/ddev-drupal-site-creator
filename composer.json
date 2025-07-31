@@ -1,4 +1,27 @@
 {
+  "name": "schillerm/ddev-drupal-site-creator",
+  "description": "Creates Drupal sites using ddev",
+  "license": "MIT",
+  "authors": [
+    {
+      "name": "Mark Schiller",
+      "email": "schillerm.work@pm.me",
+      "role": "Developer"
+    }
+  ],
+  "type": "library",
+  "bin": [
+    "bin/sitemaker.sh"
+  ],
+  "require": {
+      "php": ">=7.4 || >=8.0",
+      "symfony/process": "^6.0"
+  },
+  "suggest": {
+    "ddev/ddev": "DDEV CLI should be installed on the host system",
+    "composer/composer": "Needed to run `composer` via DDEV",
+    "jq": "For JSON output parsing"
+  },
   "repositories": [
     {
       "type": "composer",
