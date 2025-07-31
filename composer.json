@@ -11,7 +11,7 @@
   ],
   "type": "library",
   "bin": [
-    "bin/sitemaker"
+    "bin/ddev-drupal-site-creator"
   ],
   "require": {
       "php": ">=7.4 || >=8.0",
