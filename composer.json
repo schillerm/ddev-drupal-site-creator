@@ -11,7 +11,7 @@
   ],
   "type": "library",
   "bin": [
-    "bin/sitemaker.sh"
+    "bin/sitemaker"
   ],
   "require": {
       "php": ">=7.4 || >=8.0",
