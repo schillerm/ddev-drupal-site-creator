@@ -835,7 +835,7 @@ function get_git {
     git init
     git branch -M main
     # Copy .gitignore over
-    cp ../Extras/.gitignore .gitignore
+    cp $HOME/.config/composer/vendor/schillerm/ddev-drupal-site-creator/Extras/.gitignore .gitignore
   fi
 
   if [[ "$clear_toggle" == "on" ]]; then
@@ -879,10 +879,10 @@ function make_folders_copy_files {
   mkdir -p .vscode
 
   # copy vscode file over
-  cp ../Extras/launch.json .vscode/launch.json
+  cp $HOME/.config/composer/vendor/schillerm/ddev-drupal-site-creator/Extras/launch.json .vscode/launch.json
 
   # Copy phpstan.neon over
-  cp ../Extras/phpstan.neon phpstan.neon
+  cp $HOME/.config/composer/vendor/schillerm/ddev-drupal-site-creator/Extras/phpstan.neon phpstan.neon
 }
 
 function change_settings {
