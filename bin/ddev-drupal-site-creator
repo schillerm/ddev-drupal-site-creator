@@ -928,7 +928,7 @@ function get_dcms_install {
 function get_project_stable_version() {
 
   # Try adding a project root
-  PROJECT_ROOT="~/.config/composer/vendor/schillerm/ddev-drupal-site-creator/bin/"
+  PROJECT_ROOT="$HOME/.config/composer/vendor/schillerm/ddev-drupal-site-creator/bin"
 
   # Grab json object all about this project
   module_info=$(composer show "drupal/${project_name}" --format=json -all --working-dir="$PROJECT_ROOT")
