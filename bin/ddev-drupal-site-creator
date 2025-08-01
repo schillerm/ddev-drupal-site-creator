@@ -927,14 +927,11 @@ function get_dcms_install {
 
 function get_project_stable_version() {
 
-  # Try adding a project root
+  # Add a project root
   PROJECT_ROOT="$HOME/.config/composer/vendor/schillerm/ddev-drupal-site-creator/bin"
 
   # Grab json object all about this project
   module_info=$(composer show "drupal/${project_name}" --format=json -all --working-dir="$PROJECT_ROOT")
-
-  echo ""
-  echo "Made it here!"
 
   # Extract all the versions
   mapfile -t versions < <(echo "$module_info" | jq -r '.versions[]')
@@ -1120,9 +1117,15 @@ NC='\033[0m'
 if [[ "$clear_toggle" == "on" ]]; then
   clear
 fi
-echo -e "${GREEN}${BOLD}"
-figlet -f small "DDev Drupal Site creator"
-echo -e "${NC}"
+
+# Display opening title
+if command -v figlet >/dev/null 2>&1; then
+  echo -e "${GREEN}${BOLD}"
+  figlet -f small "DDev Drupal Site creator"
+  echo -e "${NC}"
+else
+  echo "==== DDev Drupal Site creator ===="
+fi
 
 # Progress bar
 for i in {1..100}; do
@@ -1218,9 +1221,15 @@ if [ "$drupal_install" = "Drupal site" ]; then
   yes | ddev restart
   git_add_and_commit
 
-  echo -e "${GREEN}${BOLD}"
-  figlet -f small "Finished!"
-  echo -e "${NC}"
+  if command -v figlet >/dev/null 2>&1; then
+    echo -e "${GREEN}${BOLD}"
+    figlet -f small "Finished"
+    echo -e "${NC}"
+  else
+    echo "==== Finished ===="
+  fi
+
+
 fi
 
 #########################################################
@@ -1286,9 +1295,13 @@ if [ "$drupal_install" = "Drupal site based on an issue" ]; then
     # Check out the branch
     git checkout -b "${link_text}" --track "${project_name}-${issue_number}/${link_text}"
 
-    echo -e "${GREEN}${BOLD}"
-    figlet -f small "Finished!"
-    echo -e "${NC}"
+    if command -v figlet >/dev/null 2>&1; then
+      echo -e "${GREEN}${BOLD}"
+      figlet -f small "Finished"
+      echo -e "${NC}"
+    else
+      echo "==== Finished ===="
+    fi
     ;;
   modules)
     get_project_stable_version
@@ -1426,9 +1439,13 @@ if [ "$drupal_install" = "Drupal site based on an issue" ]; then
     yes | ddev restart
     git_add_and_commit
 
-    echo -e "${GREEN}${BOLD}"
-    figlet -f small "Finished!"
-    echo -e "${NC}"
+    if command -v figlet >/dev/null 2>&1; then
+      echo -e "${GREEN}${BOLD}"
+      figlet -f small "Finished"
+      echo -e "${NC}"
+    else
+      echo "==== Finished ===="
+    fi
     ;;
   themes)
 
@@ -1547,9 +1564,13 @@ if [ "$drupal_install" = "Drupal site based on an issue" ]; then
     yes | ddev restart
     git_add_and_commit
 
-    echo -e "${GREEN}${BOLD}"
-    figlet -f small "Finished!"
-    echo -e "${NC}"
+    if command -v figlet >/dev/null 2>&1; then
+      echo -e "${GREEN}${BOLD}"
+      figlet -f small "Finished"
+      echo -e "${NC}"
+    else
+      echo "==== Finished ===="
+    fi
 
     ;;
   # recipies)
