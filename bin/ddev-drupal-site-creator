@@ -925,19 +925,19 @@ function get_dcms_install {
   dcms_install="${dcms_auto_install_options[$dcms_auto_install_options_choice]}"
 }
 
-function get_project_stable_version() {
+function get_project_stable_version {
 
   # Add a project root
   PROJECT_ROOT="$HOME/.config/composer/vendor/schillerm/ddev-drupal-site-creator/bin"
 
   # Grab json object all about this project
-  module_info=$(composer show "drupal/${project_name}" --format=json -all --working-dir="$PROJECT_ROOT")
+  module_info=$(composer show "drupal/${project_name}" --format=json --all --working-dir="$PROJECT_ROOT")
 
   # Extract all the versions
   mapfile -t versions < <(echo "$module_info" | jq -r '.versions[]')
 
-  # Get the first item in the versions array
-  latest_version="${versions[0]}"
+  # Get the first item in the versions array, removing -dev -beta bit from the end.
+  latest_version="${versions[0]%%-*}"
 
   # Need to check if the version begins with old style versioning (eg 8.x-1.x-dev rather than 1.x-dev)
 
@@ -956,20 +956,11 @@ function get_project_stable_version() {
 
 function get_project_latest_drupal_version {
 
-  export PROJECT_NAME="$project_name"
-  export LATEST_VERSION="$latest_version"
+  module_cvr_url="https://git.drupalcode.org/project/${project_name}/-/raw/${latest_version}/${project_name}.info.yml"
 
-  release_history_page=$(curl -s "https://updates.drupal.org/release-history/${PROJECT_NAME}/current")
-
-  core_compatibility=$(echo "$release_history_page" | yq -p=xml -o=y ".project.releases.release | map(select(.version == \"$LATEST_VERSION\")) | .[0].core_compatibility")
-
-  # Set $latest_drupal_version (Major version supported by this project)
-  latest_drupal_version=$(echo "$core_compatibility" |
-    tr '|' '\n' |
-    sed 's/[^0-9.]*//g' |
-    grep -Ev '^12(\.|$)' |
-    sort -V |
-    tail -n1)
+  # Get the core_version_requirement (usually a string), extract versions, and return the highest
+  latest_drupal_version=$(curl -s "$module_cvr_url" | yq -r '.core_version_requirement' | \
+  grep -oE '[0-9]+' | sort -nr | head -n1)
 
   # Set $basic_drupal_version (Major version supported by this project)
   basic_drupal_version=$(echo "$latest_drupal_version" | cut -d. -f1)
@@ -1020,6 +1011,57 @@ function get_issue_url {
     echo "Unknown project type (not core, theme or a module issue) : $MT_project_type_raw"
     ;;
   esac
+
+}
+
+function get_project_dependancies {
+
+  module_info_url="https://git.drupalcode.org/project/${project_name}/-/raw/${latest_version}/${project_name}.info.yml"
+
+  module_composer_url="https://git.drupalcode.org/project/${project_name}/-/raw/${latest_version}/composer.json"
+
+  # Dependencies from .info.yml: strip 'drupal:' and anything after ':'
+  info_deps=$(curl -s "$module_info_url" | yq '.dependencies[]' |
+    sed -E 's/^drupal://' | sed -E 's/:.*//' | sed -E 's/^[[:space:]]+|[[:space:]]+$//')
+
+  # Dependencies from composer.json: keep drupal/ prefix as-is
+  composer_json_deps=$(curl -s "$module_composer_url" | jq -r '.require // {} | keys[]')
+
+  # Dependancies from composer show
+  composer_show_deps=$(composer show "drupal/${project_name}" --format=json --all | jq -r '.requires | keys[]')
+
+  # Merge and de-duplicate
+  dependencies=()
+
+  for dep in $info_deps; do
+    dependencies+=("drupal/$dep")
+  done
+
+  for dep in $composer_json_deps; do
+    dependencies+=("$dep")
+  done
+
+  for dep in $composer_show_deps; do
+    dependencies+=("$dep")
+  done
+
+  # Change the composer.json to allow dev packages
+  ddev composer config minimum-stability dev
+
+  # Clear the composer cache
+  ddev composer clear-cache
+
+  # Remove duplicates, environmental dependancies and drupal/core
+  unique_dependencies=($(printf "%s\n" "${dependencies[@]}" | sort -u | grep '/' | grep -v '^drupal/core$'))
+
+  # Composer require the dependencies
+  for dep in "${unique_dependencies[@]}"; do
+    echo "Requiring $dep..."
+    if ! ddev composer require "$dep" -W; then
+      echo "Failed to require $dep" >&2
+      # Maybe log or collect failed dependencies here
+    fi
+  done
 
 }
 
@@ -1357,25 +1399,14 @@ if [ "$drupal_install" = "Drupal site based on an issue" ]; then
       fi
 
     else
-      echo "❌ Issue branch not found!"
+      echo "Issue branch not found!"
     fi
 
     # CD back out of the directory
     cd ../../../../
 
-    # Get dependencies from composer show
-    module_info=$(ddev composer show "drupal/${project_name}" --format=json --all)
-
-    # Extract the required package names into an array, excluding drupal/core, drupal/ext-dom and anything without a slash like php extensions
-    readarray -t required_packages < <(
-      echo "$module_info" |
-        jq -r '.requires | keys[] | select(test("/") and . != "drupal/core" and . != "drupal/ext-dom")'
-    )
-
-    # Install dependencies with Composer
-    for package in "${required_packages[@]}"; do
-      ddev composer require "$package" -W
-    done
+    # Get and install dependancies
+    get_project_dependancies
 
     # Do a check if this module requires a theme
     theme_query_result=$(is_a_theme_required);
@@ -1497,19 +1528,8 @@ if [ "$drupal_install" = "Drupal site based on an issue" ]; then
     # CD back out of the directory
     cd ../../../../
 
-    # Get dependencies from composer show
-    module_info=$(ddev composer show "drupal/${project_name}" --format=json --all)
-
-    # Extract the required package names into an array, excluding drupal/core, drupal/ext-dom and anything without a slash like php extensions
-    readarray -t required_packages < <(
-      echo "$module_info" |
-        jq -r '.requires | keys[] | select(test("/") and . != "drupal/core" and . != "drupal/ext-dom")'
-    )
-
-    # Install dependencies with Composer
-    for package in "${required_packages[@]}"; do
-      ddev composer require "$package" -W
-    done
+    # Get and install dependancies - do we need to do this for themes?
+    get_project_dependancies
 
     # Enable the theme and set as default
     ddev drush theme:enable ${project_name}
