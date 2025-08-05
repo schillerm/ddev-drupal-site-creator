@@ -1020,15 +1020,44 @@ function get_project_dependancies {
 
   module_composer_url="https://git.drupalcode.org/project/${project_name}/-/raw/${latest_version}/composer.json"
 
-  # Dependencies from .info.yml: strip 'drupal:' and anything after ':'
+  # Fetch composer.json with status code
+  http_status=$(curl -s -o composer_tmp.json -w "%{http_code}" "$module_composer_url")
+
+  # Test if composer.json exists
+  if [[ "$http_status" -eq 200 ]]; then
+    if jq empty composer_tmp.json 2>/dev/null; then
+      composer_json_deps=$(jq -r '.require // {} | keys[]' composer_tmp.json)
+    else
+      echo "Error: composer.json exists but contains invalid JSON: $module_composer_url"
+      composer_json_deps=()
+    fi
+  else
+    echo "Notice: composer.json not found at $module_composer_url (HTTP $http_status)"
+    composer_json_deps=()
+  fi
+  # Delete temp file
+  rm -f composer_tmp.json
+
+  # Get dependencies from .info.yml: strip 'drupal:' and anything after ':'
   info_deps=$(curl -s "$module_info_url" | yq '.dependencies[]' |
     sed -E 's/^drupal://' | sed -E 's/:.*//' | sed -E 's/^[[:space:]]+|[[:space:]]+$//')
 
-  # Dependencies from composer.json: keep drupal/ prefix as-is
-  composer_json_deps=$(curl -s "$module_composer_url" | jq -r '.require // {} | keys[]')
+  # Get dependencies from composer show
+  composer_show_output=$(composer show "drupal/${project_name}" --format=json --all 2>/dev/null)
 
-  # Dependancies from composer show
-  composer_show_deps=$(composer show "drupal/${project_name}" --format=json --all | jq -r '.requires | keys[]')
+# Check if composer show json is valid first
+  if echo "$composer_show_output" | jq empty 2>/dev/null; then
+    # Check if .requires is an object
+    if echo "$composer_show_output" | jq -e '.requires | type == "object"' >/dev/null 2>&1; then
+      composer_show_deps=$(echo "$composer_show_output" | jq -r '.requires | keys[]')
+    else
+      echo "composer show JSON does not contain a valid .requires object for drupal/${project_name}"
+      composer_show_deps=()
+    fi
+  else
+    echo "Warning: composer show returned invalid JSON for drupal/${project_name}"
+    composer_show_deps=()
+  fi
 
   # Merge and de-duplicate
   dependencies=()
@@ -1044,12 +1073,6 @@ function get_project_dependancies {
   for dep in $composer_show_deps; do
     dependencies+=("$dep")
   done
-
-  # Change the composer.json to allow dev packages
-  ddev composer config minimum-stability dev
-
-  # Clear the composer cache
-  ddev composer clear-cache
 
   # Remove duplicates, environmental dependancies and drupal/core
   unique_dependencies=($(printf "%s\n" "${dependencies[@]}" | sort -u | grep '/' | grep -v '^drupal/core$'))
