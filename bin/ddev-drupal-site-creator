@@ -925,46 +925,103 @@ function get_dcms_install {
   dcms_install="${dcms_auto_install_options[$dcms_auto_install_options_choice]}"
 }
 
-function get_project_stable_version {
+function get_project_branch {
 
-  # Add a project root
-  PROJECT_ROOT="$HOME/.config/composer/vendor/schillerm/ddev-drupal-site-creator/bin"
+  local encoded_project="project%2F${project_name}"
 
-  # Grab json object all about this project
-  module_info=$(composer show "drupal/${project_name}" --format=json --all --working-dir="$PROJECT_ROOT")
+  # Get the default branch
+  default_branch=$(curl -s "https://git.drupalcode.org/api/v4/projects/${encoded_project}" |
+    jq -r '.default_branch // empty')
 
-  # Extract all the versions
-  mapfile -t versions < <(echo "$module_info" | jq -r '.versions[]')
+  if [[ -z "$default_branch" ]]; then
+    echo "Error: Could not fetch default branch for $project_name"
+    return 1
+  fi
 
-  # Get the first item in the versions array, removing -dev -beta bit from the end.
-  latest_version="${versions[0]%%-*}"
+  # Get the most recently updated branch
+  latest_branch=$(curl -s "https://git.drupalcode.org/api/v4/projects/${encoded_project}/repository/branches" |
+    jq -r '.[] | [.name, .commit.committed_date] | @tsv' |
+    sort -k2 -r |
+    head -n 1 |
+    cut -f1)
 
-  # Need to check if the version begins with old style versioning (eg 8.x-1.x-dev rather than 1.x-dev)
+  if [[ -z "$latest_branch" ]]; then
+    echo "Error: Could not determine latest updated branch for $project_name"
+    return 1
+  fi
 
-  # Test if page for the old version exists.
-  old_style_version_url="https://www.drupal.org/project/${project_name}/releases/8.x-${latest_version}"
+  # Compare the two branches
+  if [[ "$default_branch" == "$latest_branch" ]]; then
+    echo "The default branch ($default_branch) is the most recently updated."
+    # Set the latest version
+    latest_version="$latest_branch"
+  else
+    # Ask the user which branch to use
+    echo -e "${blue}Creating new DDev Drupal site${reset}"
+    echo -e " "
+    echo "The default branch is '$default_branch', but the most recently updated is '$latest_branch'."
+    echo ""
+    echo "Please choose which branch to use."
 
-  # Get the status code for that url
-  old_style_version_url_status_code=$(curl -o /dev/null -s -w "%{http_code}" "$old_style_version_url")
+    # Branch values used internally
+    branch_values=(
+    "${default_branch}"
+    "${latest_branch}"
+    )
 
-  # If old style version exists then change the latest_version to be that.
-  if [[ "$old_style_version_url_status_code" == "200" ]]; then
-    latest_version="8.x-${latest_version}"
+    # Labels shown to the user
+    branch_options=(
+    "Default branch: ${default_branch}"
+    "Most recently updated branch: ${latest_branch}"
+    )
+
+    select_option "${branch_options[@]}"
+    branch_choice=$?
+    latest_version="${branch_values[branch_choice]}"
+
+    if [[ "$clear_toggle" == "on" ]]; then
+    clear
+    fi
+
   fi
 
 }
 
 function get_project_latest_drupal_version {
 
-  module_cvr_url="https://git.drupalcode.org/project/${project_name}/-/raw/${latest_version}/${project_name}.info.yml"
+  project_cvr_url="https://git.drupalcode.org/project/${project_name}/-/raw/${latest_version}/${project_name}.info.yml"
 
-  # Get the core_version_requirement (usually a string), extract versions, and return the highest
-  latest_drupal_version=$(curl -s "$module_cvr_url" | yq -r '.core_version_requirement' | \
-  grep -oE '[0-9]+' | sort -nr | head -n1)
+  # Check if the .info.yml file exists using HTTP status
+  http_status_info=$(curl -s -o info_tmp.yml -w "%{http_code}" "$project_cvr_url")
 
-  # Set $basic_drupal_version (Major version supported by this project)
-  basic_drupal_version=$(echo "$latest_drupal_version" | cut -d. -f1)
+  if [[ "$http_status_info" -eq 200 ]]; then
+    # Parse core_version_requirement
+    latest_drupal_version=$(yq -r '.core_version_requirement // .core' info_tmp.yml | \
+      grep -oE '[0-9]+' | sort -nr | head -n1)
 
+    # Set basic major version (e.g., 10)
+    basic_drupal_version=$(echo "$latest_drupal_version" | cut -d. -f1)
+  else
+    echo "Warning: .info.yml file not found for $project_name at $latest_version."
+
+    project_info_url="https://git.drupalcode.org/project/${project_name}/-/raw/${latest_version}/${project_name}.info"
+
+    # Check if the .info.yml file exists using HTTP status
+    http_status_corporateclean=$(curl -s -o info_tmp.yml -w "%{http_code}" "$project_info_url")
+
+    if [[ "$http_status_corporateclean" -eq 200 ]]; then
+    # Old style .info exists
+    echo "I found an old style .info file, is this a Drupal 7 branch?"
+    echo ""
+    echo "This site generator only supports Drupal 8 and above"
+    fi
+
+    latest_drupal_version="unknown"
+    basic_drupal_version="unknown"
+  fi
+
+  # Cleanup
+  rm -f info_tmp.yml
 }
 
 function get_issue_url {
@@ -1020,10 +1077,9 @@ function get_project_dependancies {
 
   module_composer_url="https://git.drupalcode.org/project/${project_name}/-/raw/${latest_version}/composer.json"
 
-  # Fetch composer.json with status code
+  # Fetch composer.json
   http_status=$(curl -s -o composer_tmp.json -w "%{http_code}" "$module_composer_url")
 
-  # Test if composer.json exists
   if [[ "$http_status" -eq 200 ]]; then
     if jq empty composer_tmp.json 2>/dev/null; then
       composer_json_deps=$(jq -r '.require // {} | keys[]' composer_tmp.json)
@@ -1035,19 +1091,36 @@ function get_project_dependancies {
     echo "Notice: composer.json not found at $module_composer_url (HTTP $http_status)"
     composer_json_deps=()
   fi
-  # Delete temp file
+
   rm -f composer_tmp.json
 
-  # Get dependencies from .info.yml: strip 'drupal:' and anything after ':'
-  info_deps=$(curl -s "$module_info_url" | yq '.dependencies[]' |
-    sed -E 's/^drupal://' | sed -E 's/:.*//' | sed -E 's/^[[:space:]]+|[[:space:]]+$//')
+  # Fetch *.info.yml
+  info_http_status=$(curl -s -o info_tmp.yml -w "%{http_code}" "$module_info_url")
 
-  # Get dependencies from composer show
+  if [[ "$info_http_status" -eq 200 ]]; then
+    if yq '.' info_tmp.yml >/dev/null 2>&1; then
+    info_deps=$(
+      yq '(.dependencies // []) + (.test_dependencies // [])' info_tmp.yml |
+        sed -E 's/^[[:space:]]*-\s*//' |   # Remove leading dash and whitespace
+        sed -E 's/:.*//' |                 # Keep only before first colon
+        sed -E 's/^[[:space:]]+|[[:space:]]+$//'  # Trim spaces
+    )
+    else
+      echo "Error: Invalid YAML in .info.yml at $module_info_url"
+      info_deps=()
+    fi
+  else
+    echo "Notice: .info.yml not found at $module_info_url (HTTP $info_http_status)"
+    info_deps=()
+  fi
+
+
+  rm -f info_tmp.yml
+
+  # Get from `composer show`
   composer_show_output=$(composer show "drupal/${project_name}" --format=json --all 2>/dev/null)
 
-# Check if composer show json is valid first
   if echo "$composer_show_output" | jq empty 2>/dev/null; then
-    # Check if .requires is an object
     if echo "$composer_show_output" | jq -e '.requires | type == "object"' >/dev/null 2>&1; then
       composer_show_deps=$(echo "$composer_show_output" | jq -r '.requires | keys[]')
     else
@@ -1059,32 +1132,73 @@ function get_project_dependancies {
     composer_show_deps=()
   fi
 
-  # Merge and de-duplicate
-  dependencies=()
+  ############################
 
-  for dep in $info_deps; do
+  # Add info_deps if not empty and is not an empty string and not = []
+  if [[ ${#info_deps[@]} -gt 0 && -n "${info_deps[0]}" && "${info_deps[0]}" != "[]" ]]; then
+  for dep in "${info_deps[@]}"; do
     dependencies+=("drupal/$dep")
   done
+  fi
 
-  for dep in $composer_json_deps; do
-    dependencies+=("$dep")
-  done
 
-  for dep in $composer_show_deps; do
-    dependencies+=("$dep")
-  done
+  # Add composer_json_deps if not empty and is not an empty string and not = []
+  if [[ ${#composer_json_deps[@]} -gt 0 && -n "${composer_json_deps[0]}" && "${composer_json_deps[0]}" != "[]" ]]; then
+    for dep in "${composer_json_deps[@]}"; do
+      dependencies+=("$dep")
+    done
+  fi
 
-  # Remove duplicates, environmental dependancies and drupal/core
-  unique_dependencies=($(printf "%s\n" "${dependencies[@]}" | sort -u | grep '/' | grep -v '^drupal/core$'))
+  # Add composer_show_deps if not empty and is not an empty string and not = []
+  if [[ ${#composer_show_deps[@]} -gt 0 && -n "${composer_show_deps[0]}" && "${composer_show_deps[0]}" != "[]" ]]; then
+    for dep in "${composer_show_deps[@]}"; do
+      dependencies+=("$dep")
+    done
+  fi
+
+  # If ${dependencies} array is empty we don't need to do this bit.
+  if [[ "${#dependencies[@]}" -ne 0 ]]; then
+
+  # Remove duplicates, exclude drupal/core and drupal/drupal
+  unique_dependencies=($(printf "%s\n" "${dependencies[@]}" |
+  sort -u |
+  grep '/' |
+  grep -v -E '^drupal/(core|drupal)$'))
+
+  echo "Print out unique_dependencies"
 
   # Composer require the dependencies
   for dep in "${unique_dependencies[@]}"; do
-    echo "Requiring $dep..."
+    #echo "Requiring $dep"
     if ! ddev composer require "$dep" -W; then
       echo "Failed to require $dep" >&2
-      # Maybe log or collect failed dependencies here
     fi
   done
+
+  ddev drush cr
+
+  # Enable modules if this is a theme issue
+  if [[ "$MT_project_type" == "themes" ]]; then
+
+  # Filter for drupal-only modules
+  filtered_dependencies=()
+
+  for dep in "${unique_dependencies[@]}"; do
+    if [[ "$dep" == drupal/* ]]; then
+      module_name="${dep#drupal/}"
+      filtered_dependencies+=("$module_name")
+    fi
+  done
+
+    echo "Enabling dependencies for theme..."
+    for dep in "${filtered_dependencies[@]}"; do
+      #echo "${dep}"
+      ddev drush en "${dep}" -y
+    done
+  fi
+
+    ddev drush cr
+  fi
 
 }
 
@@ -1369,7 +1483,7 @@ if [ "$drupal_install" = "Drupal site based on an issue" ]; then
     fi
     ;;
   modules)
-    get_project_stable_version
+    get_project_branch
     get_project_latest_drupal_version
 
     get_site_details "$basic_drupal_version"
@@ -1503,7 +1617,8 @@ if [ "$drupal_install" = "Drupal site based on an issue" ]; then
     ;;
   themes)
 
-    get_project_stable_version
+    get_project_branch
+
     get_project_latest_drupal_version
 
     get_site_details "$basic_drupal_version"
@@ -1534,25 +1649,38 @@ if [ "$drupal_install" = "Drupal site based on an issue" ]; then
     git clone ${git_clone_url}
     cd ${project_name}
 
-    # Add & fetch this issue fork’s repository
-    git remote add "${project_name}-${issue_number}" "git@git.drupal.org:issue/${project_name}-${issue_number}.git"
-    git fetch "${project_name}-${issue_number}"
+    # Try Add & fetch this issue fork’s repository
+    if git remote add "${project_name}-${issue_number}" "git@git.drupal.org:issue/${project_name}-${issue_number}.git" > /dev/null 2>&1; then
 
-    search_pattern="${project_name}-${issue_number}/${issue_number}-"
+      if git fetch "${project_name}-${issue_number}" > /dev/null 2>&1; then
 
-    issue_branch=$(git branch -r | grep "${search_pattern}" | head -n 1 | sed 's/^[ *]*//')
+      # Set the remote name
+      remote_name="${project_name}-${issue_number}"
 
-    # Set the link_text
-    link_text="${issue_branch#*/}"
+      # Get remote branch with the latest commit
+      issue_branch=$(git for-each-ref --sort=-committerdate \
+        --format='%(refname:short)' \
+        "refs/remotes/${remote_name}/" | head -n 1)
 
-    # Check out this branch for the first time
-    git checkout -b "${link_text}" --track "${project_name}-${issue_number}/${link_text}"
+      # Set the link_text
+      link_text="${issue_branch#*/}"
+
+      # Check out this branch for the first time
+      git checkout -b "${link_text}" --track "${issue_branch}"
+
+    fi
+
+    else
+      echo "Issue branch not found!"
+    fi
 
     # CD back out of the directory
     cd ../../../../
 
-    # Get and install dependancies - do we need to do this for themes?
+    # Get and install dependancies
     get_project_dependancies
+
+    echo "GGGGGGGGGGGGGGGGGGGGGGGGGGG"
 
     # Enable the theme and set as default
     ddev drush theme:enable ${project_name}
