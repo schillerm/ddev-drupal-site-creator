@@ -1680,8 +1680,6 @@ if [ "$drupal_install" = "Drupal site based on an issue" ]; then
     # Get and install dependancies
     get_project_dependancies
 
-    echo "GGGGGGGGGGGGGGGGGGGGGGGGGGG"
-
     # Enable the theme and set as default
     ddev drush theme:enable ${project_name}
     ddev drush config:set ${project_name}.settings logo.use_default 0 -y
