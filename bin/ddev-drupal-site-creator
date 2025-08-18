@@ -999,6 +999,14 @@ function get_project_latest_drupal_version {
     latest_drupal_version=$(yq -r '.core_version_requirement // .core' info_tmp.yml | \
       grep -oE '[0-9]+' | sort -nr | head -n1)
 
+    # Extract the major version (part before the dot)
+    major_version=$(echo "$latest_drupal_version" | cut -d. -f1)
+
+    # If major version is 12, force it back to 11
+    if [ "$major_version" -eq 12 ]; then
+      latest_drupal_version=11
+    fi
+
     # Set basic major version (e.g., 10)
     basic_drupal_version=$(echo "$latest_drupal_version" | cut -d. -f1)
   else
