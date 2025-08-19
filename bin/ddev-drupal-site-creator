@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
 # Uncomment to do clears, comment out to run with no clears, see all output.
-clear_toggle="on"
+#clear_toggle="on"
 
 function select_option {
 
@@ -1110,6 +1110,7 @@ function get_project_dependancies {
     info_deps=$(
       yq '(.dependencies // []) + (.test_dependencies // [])' info_tmp.yml |
         sed -E 's/^[[:space:]]*-\s*//' |   # Remove leading dash and whitespace
+        sed -E "s/^['\"]//; s/['\"]$//" |      # Remove surrounding quotes (single or double)
         sed -E 's/:.*//' |                 # Keep only before first colon
         sed -E 's/^[[:space:]]+|[[:space:]]+$//'  # Trim spaces
     )
