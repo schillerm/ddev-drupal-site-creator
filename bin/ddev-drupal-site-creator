@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
 # Uncomment to do clears, comment out to run with no clears, see all output.
-#clear_toggle="on"
+clear_toggle="on"
 
 function select_option {
 
