@@ -907,6 +907,25 @@ function export_config {
   ddev drush cex -y
 }
 
+function copy_phpunit_file {
+
+  # Copy and rename phpunit.xml file
+  cp web/core/phpunit.xml.dist web/core/phpunit.xml
+
+  # Get the url
+  stbu=$(ddev describe | grep -o 'http://[^ ]*' | head -n1 | tr -d ',')
+
+  # Apply both edits and move the file
+  xmlstarlet ed \
+    -u "/phpunit/php/env[@name='SIMPLETEST_BASE_URL']/@value" -v "${stbu}" \
+    -u "/phpunit/php/env[@name='SIMPLETEST_DB']/@value" -v "mysql://db:db@db/db" \
+    web/core/phpunit.xml > web/phpunit.xml
+
+  # Delete spare file
+  rm web/core/phpunit.xml
+
+}
+
 function get_dcms_install {
   if [[ "$clear_toggle" == "on" ]]; then
     clear
@@ -1267,6 +1286,7 @@ function check_prerequisites {
   echo "Checking required tools and packages..."
   echo -e ""
 
+  check_command xmlstarlet
   check_command ddev
   check_command composer
   check_command git
@@ -1407,6 +1427,7 @@ if [ "$drupal_install" = "Drupal site" ]; then
 
   enable_phpmyadmin
   yes | ddev restart
+  copy_phpunit_file
   git_add_and_commit
 
   if command -v figlet >/dev/null 2>&1; then
@@ -1614,6 +1635,7 @@ if [ "$drupal_install" = "Drupal site based on an issue" ]; then
     ddev drush cr
     enable_phpmyadmin
     yes | ddev restart
+    copy_phpunit_file
     git_add_and_commit
 
     if command -v figlet >/dev/null 2>&1; then
@@ -1740,6 +1762,7 @@ if [ "$drupal_install" = "Drupal site based on an issue" ]; then
     ddev drush cr
     enable_phpmyadmin
     yes | ddev restart
+    copy_phpunit_file
     git_add_and_commit
 
     if command -v figlet >/dev/null 2>&1; then
