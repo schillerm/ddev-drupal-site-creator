@@ -971,7 +971,7 @@ function get_project_branch {
 
   # Compare the two branches
   if [[ "$default_branch" == "$latest_branch" ]]; then
-    echo "The default branch ($default_branch) is the most recently updated."
+    # echo "The default branch ($default_branch) is the most recently updated."
     # Set the latest version
     latest_version="$latest_branch"
   else
