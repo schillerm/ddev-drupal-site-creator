@@ -915,8 +915,9 @@ function copy_phpunit_file {
   # Get the url
   stbu=$(ddev describe | grep -o 'http://[^ ]*' | head -n1 | tr -d ',')
 
-  # Apply both edits and move the file
+  # Apply all edits and move the file
   xmlstarlet ed \
+    -u "/phpunit/@bootstrap" -v "web/core/tests/bootstrap.php" \
     -u "/phpunit/php/env[@name='SIMPLETEST_BASE_URL']/@value" -v "${stbu}" \
     -u "/phpunit/php/env[@name='SIMPLETEST_DB']/@value" -v "mysql://db:db@db/db" \
     web/core/phpunit.xml > phpunit.xml
