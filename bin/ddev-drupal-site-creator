@@ -919,7 +919,7 @@ function copy_phpunit_file {
   xmlstarlet ed \
     -u "/phpunit/php/env[@name='SIMPLETEST_BASE_URL']/@value" -v "${stbu}" \
     -u "/phpunit/php/env[@name='SIMPLETEST_DB']/@value" -v "mysql://db:db@db/db" \
-    web/core/phpunit.xml > web/phpunit.xml
+    web/core/phpunit.xml > phpunit.xml
 
   # Delete spare file
   rm web/core/phpunit.xml
