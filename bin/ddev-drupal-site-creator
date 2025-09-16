@@ -920,10 +920,16 @@ function copy_phpunit_file {
     -u "/phpunit/@bootstrap" -v "web/core/tests/bootstrap.php" \
     -u "/phpunit/php/env[@name='SIMPLETEST_BASE_URL']/@value" -v "${stbu}" \
     -u "/phpunit/php/env[@name='SIMPLETEST_DB']/@value" -v "mysql://db:db@db/db" \
+    -u "/phpunit/extensions/bootstrap[@class='Drupal\TestTools\Extension\HtmlLogging\HtmlOutputLogger']/parameter[@name='outputDirectory']/@value" -v "web/sites/simpletest/browser_output" \
     web/core/phpunit.xml > phpunit.xml
 
   # Delete spare file
   rm web/core/phpunit.xml
+
+  # Create the browser_output directory
+  mkdir -p web/sites/simpletest/browser_output
+  chmod 777 web/sites/simpletest/browser_output
+
 
 }
 
