@@ -3,6 +3,9 @@
 # Uncomment to do clears, comment out to run with no clears, see all output.
 clear_toggle="on"
 
+# Get the directory where the script lives
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+
 function select_option {
 
   # little helpers for terminal print control and key input
@@ -835,7 +838,7 @@ function get_git {
     git init
     git branch -M main
     # Copy .gitignore over
-    cp $HOME/.config/composer/vendor/schillerm/ddev-drupal-site-creator/Extras/.gitignore .gitignore
+    cp $SCRIPT_DIR/../Extras/.gitignore .gitignore
   fi
 
   if [[ "$clear_toggle" == "on" ]]; then
@@ -879,10 +882,13 @@ function make_folders_copy_files {
   mkdir -p .vscode
 
   # copy vscode file over
-  cp $HOME/.config/composer/vendor/schillerm/ddev-drupal-site-creator/Extras/launch.json .vscode/launch.json
+  cp $SCRIPT_DIR/../Extras/launch.json .vscode/launch.json
 
   # Copy phpstan.neon over
-  cp $HOME/.config/composer/vendor/schillerm/ddev-drupal-site-creator/Extras/phpstan.neon phpstan.neon
+  cp $SCRIPT_DIR/../Extras/phpstan.neon phpstan.neon
+
+  # Copy notes.md over
+  cp $SCRIPT_DIR/../Extras/notes.md notes.md
 }
 
 function change_settings {
