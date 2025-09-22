@@ -31,3 +31,12 @@ To run cspell
 ddev yarn run spellcheck "path/to/file/or/directory/**/*"
 ddev yarn run spellcheck "modules/views/templates/views-view-field.html.twig"
 ddev yarn run spellcheck "../modules/contrib/tracer"
+```
+
+To run gitlab-ci-local (once it's been installed)
+```shell
+gitlab-ci-local \
+  --remote-variables git@git.drupal.org:project/gitlab_templates=includes/include.drupalci.variables.yml=1.0.x \
+  --variable="_GITLAB_TEMPLATES_REPO=project/gitlab_templates" \
+  "$@"
+  ```

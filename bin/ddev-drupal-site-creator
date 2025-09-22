@@ -73,6 +73,35 @@ function select_option {
   return $selected
 }
 
+function check_ddev_project_exists() {
+  echo -e "${blue}Creating new DDev Drupal site${reset}"
+  echo -e " "
+
+  local project_name="$1"
+
+  if [[ -z "$project_name" ]]; then
+    echo "Usage: ddev_project_exists <project_name>"
+    exit 2
+  fi
+
+  local result
+  result=$(ddev list | grep "$project_name")
+
+  if [[ -z "$result" ]]; then
+    echo "Project '$project_name' does not exist in DDev. Onwards!"
+    return 0
+  else
+    echo -e "'$project_name' already exists as a DDev site. This will prevent DDev from making another site with the same name.\n\nPlease choose a different name or delete the exisiting DDev site. \n\nUse 'ddev list' to see existing sites.\n"
+    read -p "Press enter to exit.."
+
+    exit 1
+  fi
+
+  if [[ "$clear_toggle" == "on" ]]; then
+    clear
+  fi
+}
+
 function get_basic_drupal_version {
   echo -e "${blue}Creating new DDev Drupal site${reset}"
   echo -e " "
@@ -323,6 +352,10 @@ function get_site_details() {
       break
     fi
   done
+
+    if [[ "$clear_toggle" == "on" ]]; then
+    clear
+  fi
 
 }
 
@@ -1392,6 +1425,9 @@ fi
 if [ "$drupal_install" = "Drupal site" ]; then
   get_basic_drupal_version
   get_site_details
+
+  check_ddev_project_exists "$sitename"
+
   get_drupal_version "$basic_drupal_version"
   get_php_version
   get_drush_version ""
@@ -1460,6 +1496,7 @@ if [ "$drupal_install" = "Drupal CMS site" ]; then
   get_dcms_install
   if [ "$dcms_install" = "Use this script" ]; then
     get_site_details
+    check_ddev_project_exists "$sitename"
     make_site_folder "$sitename"
     ddev config --project-type=drupal11 --docroot=web
     ddev start
@@ -1530,6 +1567,9 @@ if [ "$drupal_install" = "Drupal site based on an issue" ]; then
     get_project_latest_drupal_version
 
     get_site_details "$basic_drupal_version"
+
+    check_ddev_project_exists "$sitename"
+
     make_site_folder "$sitename"
 
     project_type="drupal${basic_drupal_version}"
@@ -1666,6 +1706,8 @@ if [ "$drupal_install" = "Drupal site based on an issue" ]; then
     get_project_latest_drupal_version
 
     get_site_details "$basic_drupal_version"
+    check_ddev_project_exists "$sitename"
+
     make_site_folder "$sitename"
 
     project_type="drupal${basic_drupal_version}"
