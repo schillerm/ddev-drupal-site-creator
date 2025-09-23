@@ -85,7 +85,7 @@ function check_ddev_project_exists() {
   fi
 
   local result
-  result=$(ddev list | grep "$project_name")
+  result=$(ddev list | grep " $project_name ")
 
   if [[ -z "$result" ]]; then
     echo "Project '$project_name' does not exist in DDev. Onwards!"
