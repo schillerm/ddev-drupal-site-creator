@@ -936,9 +936,12 @@ function set_permissions {
   chmod 755 "web/sites/default"
 }
 
-function enable_phpmyadmin {
+function enable_ddev_addons {
   # Enable phpmyadmin in DDev
   yes | ddev phpmyadmin
+
+  # Enable the ddev/ddev-selenium-standalone-chrome driver
+  ddev add-on get ddev/ddev-selenium-standalone-chrome
 }
 
 function export_config {
@@ -1474,7 +1477,7 @@ if [ "$drupal_install" = "Drupal site" ]; then
 
   ddev drush cr
 
-  enable_phpmyadmin
+  enable_ddev_addons
   yes | ddev restart
   copy_phpunit_file
   git_add_and_commit
@@ -1686,7 +1689,7 @@ if [ "$drupal_install" = "Drupal site based on an issue" ]; then
     export_config
 
     ddev drush cr
-    enable_phpmyadmin
+    enable_ddev_addons
     yes | ddev restart
     copy_phpunit_file
     git_add_and_commit
@@ -1815,7 +1818,7 @@ if [ "$drupal_install" = "Drupal site based on an issue" ]; then
     export_config
 
     ddev drush cr
-    enable_phpmyadmin
+    enable_ddev_addons
     yes | ddev restart
     copy_phpunit_file
     git_add_and_commit
