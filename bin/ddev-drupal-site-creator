@@ -1341,6 +1341,7 @@ function check_prerequisites {
   check_command git
   check_command python3
   check_command yq
+  check_command dogit
   #check_python_package bs4 # for Beautiful Soup 4
 
   # Turn the exit condition off so rest of the script can run ok
@@ -1522,40 +1523,40 @@ if [ "$drupal_install" = "Drupal site based on an issue" ]; then
 
   case "$MT_project_type" in
   core)
-    # Install using justafish/ddev-drupal-core-dev and issue fork
+    # Create a new D11.x-dev site
+    basic_drupal_version=11
+    get_site_details
+    check_ddev_project_exists "$sitename"
+    make_site_folder "$sitename"
+    project_type="drupal11"
+    ddev config --project-type="$project_type" --docroot=web
 
-    # Setting up repository for the first time
-    git clone https://git.drupalcode.org/project/drupal.git "$project_name"
-    cd "$project_name"
+    ddev composer create-project "drupal/recommended-project:^11.x-dev"
+    ddev composer config allow-plugins.tbachert/spi true
 
-    # Config ddev
-    ddev config --omit-containers=db --disable-settings-management
+    ddev start
+    ddev composer require drush/drush
+    ddev drush site:install --account-name=$username --account-pass=$password -y --site-name=$sitename
+    ddev drush config:set system.site name "$sanitized_title" --yes
 
-    # Run a composer install
-    ddev composer install
+    # Stop the site and delete the web directory
+    ddev stop
+    rm -rf web
 
-    # Get ddev-core-dev add on
-    ddev add-on get justafish/ddev-drupal-core-dev
+    # Get latest drupal directory and rename it as web
+    dogit project:clone drupal
+    mv drupal web
+    cd web
 
-    # Run a site install
-    ddev drupal install standard
+    # Ask user which issue MR to use
+    dogit issue:mr ${issue_number}
 
-    # Add & fetch this issue fork’s repository
-    git remote add "${project_name}-${issue_number}" \
-      "git@git.drupal.org:issue/${project_name}-${issue_number}.git"
+    # Edit autoload.php to set path
+    sed -i "s#return require __DIR__ . '/vendor/autoload.php';#return require __DIR__ . '/../vendor/autoload.php';#" autoload.php
 
-    # git fetch
-    git fetch "${project_name}-${issue_number}"
-
-    search_pattern="${project_name}-${issue_number}/${issue_number}-"
-
-    issue_branch=$(git branch -r | grep "${search_pattern}" | head -n 1 | sed 's/^[ *]*//')
-
-    # Set the link_text
-    link_text="${issue_branch#*/}"
-
-    # Check out the branch
-    git checkout -b "${link_text}" --track "${project_name}-${issue_number}/${link_text}"
+    cd ../
+    ddev restart
+    ddev drush cr
 
     if command -v figlet >/dev/null 2>&1; then
       echo -e "${GREEN}${BOLD}"
@@ -1565,6 +1566,9 @@ if [ "$drupal_install" = "Drupal site based on an issue" ]; then
       echo "==== Finished ===="
     fi
     ;;
+
+########################################################################
+
   modules)
     get_project_branch
     get_project_latest_drupal_version
@@ -1702,6 +1706,9 @@ if [ "$drupal_install" = "Drupal site based on an issue" ]; then
       echo "==== Finished ===="
     fi
     ;;
+
+########################################################################
+
   themes)
 
     get_project_branch
