@@ -11,7 +11,7 @@ ddev exec vendor/bin/phpstan analyze web/modules/contrib/devel -l 5
 
 To run phpcs
 ```shell
-phpcs --standard=Drupal --extensions=php,module,inc,install,test,profile,theme,info,txt,md,yml web/modules/contrib/hal
+phpcs --standard=Drupal,DrupalPractice --extensions=php,module,inc,install,test,profile,theme,info,txt,md,yml web/modules/contrib/hal
 ```
 
 To install yarn (plan to automate this in future)
@@ -36,9 +36,13 @@ ddev yarn run spellcheck "../modules/contrib/tracer"
 To run gitlab-ci-local (once it's been installed). Run inside module folder.
 ```shell
 gitlab-ci-local \
-  --remote-variables git@git.drupal.org:project/gitlab_templates=includes/include.drupalci.variables.yml=1.0.x \
+  --remote-variables git@git.drupal.org:project/gitlab_templates=includes/include.drupalci.variables.yml=main \
   --variable="_GITLAB_TEMPLATES_REPO=project/gitlab_templates" \
   "$@"
+  ```
+..or if it's set up as an alias
+```shell
+drupal-ci-local
   ```
 
 Post gitlab-ci-local

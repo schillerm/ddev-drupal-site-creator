@@ -21,6 +21,10 @@
 # Ignore simple test browser tests from PHPUnit
 /web/sites/simpletest
 
+# Ignore .gitlab-ci-local/ folders
+/web/modules/**/.gitlab-ci-local/
+/web/themes/**/.gitlab-ci-local/
+
 # Ignore paths that may contain user-generated content
 /web/sites/*/files
 /web/sites/*/public
