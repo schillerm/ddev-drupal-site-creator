@@ -8,6 +8,8 @@ This does not work in some edge cases (recipe issues for example), I am still te
 
 Sites are set up in the way that I like, with the options/modules I personally find helpful. I hope others find it useful.
 
+The dependancies needed to run this script are; xmlstarlet, ddev, composer, git, python3, yq, dogit (https://github.com/dpi/dogit).
+
 This project is typically installed globally using composer.
 
 ```shell

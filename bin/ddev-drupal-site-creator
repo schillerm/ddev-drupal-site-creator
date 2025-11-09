@@ -1555,6 +1555,7 @@ if [ "$drupal_install" = "Drupal site based on an issue" ]; then
     sed -i "s#return require __DIR__ . '/vendor/autoload.php';#return require __DIR__ . '/../vendor/autoload.php';#" autoload.php
 
     cd ../
+    cp $SCRIPT_DIR/../Extras/.gitignore .gitignore
     ddev restart
     ddev drush cr
 
