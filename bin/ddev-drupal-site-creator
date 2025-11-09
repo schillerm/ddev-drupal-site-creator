@@ -693,6 +693,8 @@ function install_dev_modules {
   ddev composer require drupal/admin_toolbar --dev
   ddev composer require drupal/examples --dev
   ddev composer require drupal/webprofiler --dev
+  ddev composer require drupal/token --dev
+  ddev composer require drupal/monitoring --dev
 
   ddev drush en admin_toolbar
   ddev drush en devel
