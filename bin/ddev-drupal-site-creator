@@ -700,6 +700,8 @@ function install_dev_modules {
   ddev drush en devel
   ddev drush en devel_generate
   ddev drush en examples
+  ddev drush en token
+  ddev drush en monitoring
   ddev drush en webprofiler -y
 }
 
