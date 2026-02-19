@@ -1,4 +1,14 @@
 parameters:
-    level: 1
+    level: 0
     paths:
         - web/modules/custom
+    fileExtensions:
+        - php
+        - module
+        - inc
+        - install
+        - theme
+        - profile
+    reportUnmatchedIgnoredErrors: false
+    ignoreErrors:
+        - "#^Unsafe usage of new static#"
