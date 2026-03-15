@@ -1420,17 +1420,6 @@ if [ "$drupal_install" = "Drupal site" ]; then
   project_type="drupal${basic_drupal_version}"
   ddev config --project-type="$project_type" --docroot=web
 
-  echo -e "This is the drupal_version : ${drupal_version}"
-
-  echo
-something=(
-  'foo'
-  'barr'
-)
-
-select_option "${something[@]}"
-something_choice=$?
-
   ddev composer create-project "drupal/recommended-project:${drupal_version}"
 
   ddev start
