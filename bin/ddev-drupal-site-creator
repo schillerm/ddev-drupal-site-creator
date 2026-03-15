@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
 # Uncomment to do clears, comment out to run with no clears, see all output.
-# clear_toggle="on"
+clear_toggle="on"
 
 # Get the directory where the script lives
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
@@ -371,10 +371,10 @@ function get_drupal_version() {
     echo
     d11_options=(
       11.x-dev
-      11.3.5
-      11.2.9
-      11.1.7
-      11.0.13
+      11.3.0
+      11.2.0
+      11.1.0
+      11.0.0
     )
 
     select_option "${d11_options[@]}"
@@ -567,24 +567,13 @@ function get_drush_version() {
   fi
 
   case "$drupal_version" in
-  "11" | "11.1.6" | "11.1.5" | "11.1.4" | "11.1.3" | "11.1.2" | "11.1.1" | "11.1.0")
-    drush_version=13
+
+    "10.5.0" | "11.2.0" | "11.3.0" )
+    drush_version=14
     ;;
 
-  "11.0.0" | "11.0.1" | "11.0.2" | "11.0.3" | "11.0.4" | "11.0.5" | "11.0.6" | "11.0.7" | "11.0.8" | "11.0.9" | "11.0.10" | "11.0.11" | "11.0.12" | "11.0.13")
-    if [[ "$clear_toggle" == "on" ]]; then
-      clear
-    fi
-    echo -e "${blue}Creating new DDev Drupal site${reset}"
-    echo -e " "
-    echo "Select a Drush version"
-    drush_versions=(
-      13
-      12
-    )
-    select_option "${drush_versions[@]}"
-    drush_choice=$?
-    drush_version="${drush_versions[$drush_choice]}"
+  "11" | "11.0.0" | "11.1.0" | "10.2.0" | "10.3.0" | "10.4.0" )
+    drush_version=13
     ;;
 
   "10.2.0" | "10.3.0" | "10.4.0" | "10")
@@ -1431,7 +1420,18 @@ if [ "$drupal_install" = "Drupal site" ]; then
   project_type="drupal${basic_drupal_version}"
   ddev config --project-type="$project_type" --docroot=web
 
-  ddev composer create-project "drupal/recommended-project:^${drupal_version}"
+  echo -e "This is the drupal_version : ${drupal_version}"
+
+  echo
+something=(
+  'foo'
+  'barr'
+)
+
+select_option "${something[@]}"
+something_choice=$?
+
+  ddev composer create-project "drupal/recommended-project:${drupal_version}"
 
   ddev start
   install_drush "$drush_version"
