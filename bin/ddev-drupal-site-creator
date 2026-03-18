@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
 # Uncomment to do clears, comment out to run with no clears, see all output.
-clear_toggle="on"
+# clear_toggle="on"
 
 # Get the directory where the script lives
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
@@ -1558,25 +1558,47 @@ if [ "$drupal_install" = "Drupal site based on an issue" ]; then
 
     check_ddev_project_exists "$sitename"
 
-    make_site_folder "$sitename"
+    # Work out if this is a localgov drupal site
+    if [[ "$project_name" == localgov* ]]; then
 
-    project_type="drupal${basic_drupal_version}"
-    ddev config --project-type="$project_type" --docroot=web
-    ddev start
+      composer create-project localgovdrupal/localgov-project "${sitename}" --no-install
+      cd "${sitename}"
+      project_type="drupal${basic_drupal_version}"
+      ddev config --project-type="${project_type}" --docroot=web
+      ddev start
+      ddev composer install
 
-    recommended_project="recommended-project:^${basic_drupal_version}"
-    ddev composer create-project "drupal/${recommended_project}"
+      ddev drush si localgov --account-name=$username --account-pass=$password -y
 
-    get_drush_version "$basic_drupal_version"
-    install_drush "$drush_version"
+    else
 
-    ddev drush site:install --account-name=$username --account-pass=$password -y --site-name=$sitename
+      make_site_folder "$sitename"
+
+      project_type="drupal${basic_drupal_version}"
+      ddev config --project-type="$project_type" --docroot=web
+      ddev start
+
+      recommended_project="recommended-project:^${basic_drupal_version}"
+      ddev composer create-project "drupal/${recommended_project}"
+
+      get_drush_version "$basic_drupal_version"
+      install_drush "$drush_version"
+
+      ddev drush site:install --account-name=$username --account-pass=$password -y --site-name=$sitename
+
+    fi
+
     ddev drush config:set system.site name "$sanitized_title" --yes
 
     make_folders_copy_files
 
     # Go into contrib folder and clone issue module or theme
     cd "web/${MT_project_type}/contrib/"
+
+    # Delete localgov module folder if needed
+    if [[ "$project_name" == localgov* ]]; then
+      sudo rm -r "$project_name"
+    fi
 
     # Setting up repository for the first time
     git_clone_url="https://git.drupalcode.org/project/${project_name}.git"
