@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
 # Uncomment to do clears, comment out to run with no clears, see all output.
-# clear_toggle="on"
+clear_toggle="on"
 
 # Get the directory where the script lives
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
