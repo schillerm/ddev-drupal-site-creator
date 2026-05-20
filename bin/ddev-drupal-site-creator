@@ -1566,6 +1566,7 @@ if [ "$drupal_install" = "Drupal site based on an issue" ]; then
       project_type="drupal${basic_drupal_version}"
       ddev config --project-type="${project_type}" --docroot=web
       ddev start
+      ddev composer config audit.block-insecure false
       ddev composer install
 
       ddev drush si localgov --account-name=$username --account-pass=$password -y
