@@ -1,3 +1,12 @@
+To send updates to packagist..
+make changes to files
+git status
+git add .
+git commit -m "Made some changes"
+git push
+git tag v1.3.1
+git push origin v1.3.1
+
 To run phpunit
 ```shell
 ddev ssh
