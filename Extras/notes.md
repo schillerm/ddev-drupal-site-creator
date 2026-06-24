@@ -8,8 +8,12 @@ To run phpstan
 ```shell
 ddev exec vendor/bin/phpstan analyze web/modules/contrib/devel -l 5
 ```
+To run phpcs (using default phpcs.xml)
+```shell
+phpcs  web/modules/contrib/hal
+```
 
-To run phpcs
+To run phpcs with extra DrupalPractice (overriding phpcs.xml)
 ```shell
 phpcs --standard=Drupal,DrupalPractice --extensions=php,module,inc,install,test,profile,theme,info,txt,md,yml web/modules/contrib/hal
 ```

@@ -900,6 +900,9 @@ function make_folders_copy_files {
   # Copy phpstan.neon over
   cp $SCRIPT_DIR/../Extras/phpstan.neon phpstan.neon
 
+  # Copy phpcs.xml over
+  cp $SCRIPT_DIR/../Extras/phpcs.xml phpcs.xml
+
   # Copy notes.md over
   cp $SCRIPT_DIR/../Extras/notes.md notes.md
 }
