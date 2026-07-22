@@ -17,6 +17,12 @@ To run phpstan
 ```shell
 ddev exec vendor/bin/phpstan analyze web/modules/contrib/devel -l 5
 ```
+
+To run phpstan using phpstan.neon (run from site root)
+```shell
+vendor/bin/phpstan analyse web/modules/contrib/devel
+```
+
 To run phpcs (using default phpcs.xml)
 ```shell
 phpcs  web/modules/contrib/hal
