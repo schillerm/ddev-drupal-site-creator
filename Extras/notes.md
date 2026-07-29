@@ -23,6 +23,12 @@ To run phpstan using phpstan.neon (run from site root)
 vendor/bin/phpstan analyse web/modules/contrib/devel
 ```
 
+To run phpstan using phpstan.neon from contrib modules folder (run this command from site root)
+```shell
+vendor/bin/phpstan analyse \
+  --configuration=web/modules/contrib/linkit/phpstan.neon web/modules/contrib/linkit
+```
+
 To run phpcs (using default phpcs.xml)
 ```shell
 phpcs  web/modules/contrib/hal
